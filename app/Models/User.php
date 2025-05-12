@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
+        'unique_user_id', // Unique user ID for each user
     ];
 
     /**
@@ -68,6 +69,11 @@ class User extends Authenticatable
     public function lawyerProfile()
     {
         return $this->hasOne(LawyerProfile::class);
+    }
+
+    public function commonProfile()
+    {
+        return $this->hasOne(CommonProfile::class);
     }
 
     public function hasRole($role)

@@ -7,13 +7,14 @@ use App\Models\ModeratorProfile;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
     public function create_moderator(Request $request)
     {
-       
+
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -50,18 +51,20 @@ class AdminController extends Controller
     }
 
 
-    public function getUserWithProfile($userId)
+    public function getUserWithProfile($uniqueUserId)
     {
+        // // Get the logged-in user
+        // $loggedInUser = auth()->user()->load('role');
 
-        $loggedInUser = auth()->user()->load('role');
+        // // Ensure the authenticated user is a Super Admin
+        // if (!$loggedInUser->hasRole('super admin')) {
+        //     return response()->json(['error' => 'Unauthorized'], 403);
+        // }
 
-        // Ensure the authenticated user is a Super Admin
-        if (!$loggedInUser->hasRole('super admin')) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        // Retrieve the user along with their profile
-        $user = User::with('customerProfile')->findOrFail($userId);
+        // Retrieve the user based on the unique_user_id along with their profile
+        $user = User::with('customerProfile')
+            ->where('unique_user_id', $uniqueUserId)
+            ->firstOrFail();
 
         return response()->json([
             'user' => $user,
@@ -71,7 +74,7 @@ class AdminController extends Controller
     {
 
 
-        
+
 
         // Get all users excluding 'super admin' and 'moderator'
         $users = User::with('customerProfile', 'role')
@@ -84,10 +87,14 @@ class AdminController extends Controller
             'users' => $users,
         ], 200);
     }
-    public function updateUser(Request $request, User $user)
+    public function updateUser(Request $request, $uniqueUserId)
     {
         // Super Admin check (optional)
-        
+
+        $user = User::with('customerProfile')
+            ->where('unique_user_id', $uniqueUserId)
+            ->firstOrFail();
+
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -100,6 +107,8 @@ class AdminController extends Controller
             $validated['password'] = bcrypt($request->password);
         }
 
+       
+
         // Update user in the 'users' table
         $user->update($validated);
 
@@ -109,13 +118,16 @@ class AdminController extends Controller
             $user->customerProfile()->update($customerProfileData);
         }
 
-        return response()->json(['message' => 'User updated successfully.', 'user' => $user,'status'=>true,'code'=>200], 200);
+        return response()->json(['message' => 'User updated successfully.', 'user' => $user, 'status' => true, 'code' => 200], 200);
     }
 
     // Deactivate user
-    public function deactivateUser(User $user)
+    public function deactivateUser($uniqueUserId)
     {
-        
+
+        $user = User::with('customerProfile')
+            ->where('unique_user_id', $uniqueUserId)
+            ->firstOrFail();
 
         // Deactivate user by setting 'active_status' to false
         $user->update(['active_status' => false]);
@@ -124,9 +136,12 @@ class AdminController extends Controller
     }
 
     // Delete user
-    public function deleteUser(User $user)
+    public function deleteUser($uniqueUserId)
     {
-        
+        $user = User::with('customerProfile')
+            ->where('unique_user_id', $uniqueUserId)
+            ->firstOrFail();
+
 
         // Delete user and related customer profile
         $user->customerProfile()->delete();
@@ -137,7 +152,7 @@ class AdminController extends Controller
     public function getAllModerators()
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Retrieve all moderators with their profiles
         $moderators = User::with('moderatorProfile')->whereHas('role', function ($query) {
@@ -149,27 +164,32 @@ class AdminController extends Controller
 
         ]);
     }
-    public function deleteModerator($moderatorId)
+    public function deleteModerator($uniqueModeratorId)
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Find the moderator by ID
-        $moderator = User::findOrFail($moderatorId);
+        $moderator = User::with('moderatorProfile')
+            ->where('unique_user_id', $uniqueModeratorId)
+            ->firstOrFail();
 
         // Delete the moderator
+        $moderator->moderatorProfile()->delete(); // Delete the moderator profile
         $moderator->delete();
 
         return response()->json(['message' => 'Moderator deleted successfully.']);
     }
 
-    public function getSingleModerator($moderatorId)
+    public function getSingleModerator($uniqueModeratorId)
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Retrieve all roles
-        $moderator = User::findOrFail($moderatorId);
+        $moderator = User::with('moderatorProfile')
+            ->where('unique_user_id', $uniqueModeratorId)
+            ->firstOrFail();
 
 
         return response()->json([
@@ -177,23 +197,67 @@ class AdminController extends Controller
 
         ]);
     }
-    public function updateModerator(Request $request, $moderatorId)
+    // public function updateModerator(Request $request, $uniqueModeratorId)
+    // {
+    //     // Ensure the authenticated user is a Super Admin
+
+
+    //     // Find the moderator by ID
+    //     $moderator = User::findOrFail($uniqueModeratorId);
+
+    //     // Update the moderator with the request data
+    //     $moderator->update($request->all());
+
+    //     return response()->json(['message' => 'Moderator updated successfully.']);
+    // }
+
+    public function updateModerator(Request $request, $uniqueModeratorId)
     {
-        // Ensure the authenticated user is a Super Admin
-        
+        // Validate the incoming request (exclude password from the validation)
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $uniqueModeratorId, // Ensure unique email except for the current user
+            'phone' => 'nullable|string|regex:/^01[3-9][0-9]{8}$/',
+            'gender' => 'nullable|string',
+            'dob' => 'nullable|date',
+            'avatar' => 'nullable|string',
+            'active_status' => 'nullable|boolean',
+        ]);
 
-        // Find the moderator by ID
-        $moderator = User::findOrFail($moderatorId);
+        DB::beginTransaction();
 
-        // Update the moderator with the request data
-        $moderator->update($request->all());
+        try {
+            // Find the user by unique_user_id
+            $user = User::where('unique_user_id', $uniqueModeratorId)->firstOrFail();
 
-        return response()->json(['message' => 'Moderator updated successfully.']);
+            // Update the user fields (skip the password field)
+            $user->update( ['name' => $validated['name'] ?? $user->name,
+            'email' => $validated['email'] ?? $user->email,
+            'phone' => $validated['phone'] ?? $user->phone]);
+
+            // If the user has an associated moderator profile, update it
+            if ($user->moderatorProfile) {
+                $user->moderatorProfile->update([
+                    'gender' => $validated['gender'] ?? $user->moderatorProfile->gender,
+                    'dob' => $validated['dob'] ?? $user->moderatorProfile->dob,
+                    'avatar' => $validated['avatar'] ?? $user->moderatorProfile->avatar,
+                    'active_status' => $validated['active_status'] ?? $user->moderatorProfile->active_status,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json(['message' => 'Moderator updated successfully.'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Update failed', 'details' => $e->getMessage()], 500);
+        }
     }
+
     public function getAllRoles()
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Retrieve all roles
         $roles = Role::all();
@@ -207,7 +271,7 @@ class AdminController extends Controller
     public function getSingleRole($roleId)
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Retrieve all roles
         $role = Role::findOrFail($roleId);
@@ -220,7 +284,7 @@ class AdminController extends Controller
     public function deleteRole($roleId)
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Find the role by ID
         $role = Role::findOrFail($roleId);
@@ -233,7 +297,7 @@ class AdminController extends Controller
     public function updateRole(Request $request, $roleId)
     {
         // Ensure the authenticated user is a Super Admin
-        
+
 
         // Find the role by ID
         $role = Role::findOrFail($roleId);
@@ -242,5 +306,28 @@ class AdminController extends Controller
         $role->update($request->all());
 
         return response()->json(['message' => 'Role updated successfully.']);
+    }
+
+
+
+    public function createServiceProviderRole(Request $request)
+    {
+        // Validate incoming request
+        $request->validate([
+            'name' => 'required|string|unique:roles,name', // Role name (doctor, lawyer, etc.)
+            'identification_placeholder' => 'nullable|string', // Role-specific placeholder (e.g., license number)
+        ]);
+
+        // Create the role with the provided data
+        $role = Role::create([
+            'name' => $request->name,  // Name of the new role
+            'identification_placeholder' => $request->identification_placeholder,  // Additional role-specific field
+        ]);
+
+        // Return response with success message and role data
+        return response()->json([
+            'message' => 'Service provider created successfully.',
+            'role' => $role
+        ], 201);
     }
 }

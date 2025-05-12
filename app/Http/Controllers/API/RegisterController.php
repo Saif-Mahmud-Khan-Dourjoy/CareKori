@@ -12,6 +12,7 @@ use App\Models\LawyerProfile;
 use App\Models\OtpCode;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 
 class RegisterController extends Controller
@@ -24,6 +25,7 @@ class RegisterController extends Controller
             'password' => 'required|min:6',
             'role' => 'required',
             'name' => 'required|string',
+            'email' => 'nullable|email|unique:users,email',
             // Add validation rules for role-specific fields
         ]);
 
@@ -34,7 +36,7 @@ class RegisterController extends Controller
         //     ->first();
 
         // if (!$otp) {
-        //     return response()->json(['message' => 'OTP not verified or expired'], 403);
+        //     return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
         // }
 
 
@@ -42,14 +44,18 @@ class RegisterController extends Controller
         DB::beginTransaction();
 
         try {
-            $role = Role::firstOrCreate(['name' => $request->role]);
+            $uniqueUserId = $this->generateUniqueUserId();
 
+   
+
+            // Create the user and pass the generated unique_user_id
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email ?? null,
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
-                'role_id' => $role->id,
+                'role_id' => $request->role,
+                'unique_user_id' => (string)$uniqueUserId, // Ensure unique_user_id is passed here
             ]);
 
             $this->createProfile($user, $request);
@@ -71,7 +77,7 @@ class RegisterController extends Controller
     {
 
 
-        switch ($user->role->name) {
+        switch (Str::lower($user->role->name)) {
             case 'customer':
                 $this->createCustomerProfile($user, $request);
                 break;
@@ -82,7 +88,8 @@ class RegisterController extends Controller
                 $this->createLawyerProfile($user, $request);
                 break;
             default:
-                throw new \Exception("Invalid role specified");
+                $this->createCommonProfile($user, $request);
+                break;
         }
     }
 
@@ -107,6 +114,7 @@ class RegisterController extends Controller
 
     private function createDoctorProfile(User $user, Request $request)
     {
+        // Validate the incoming request
         $validated = $request->validate([
             'doctor_type_id' => 'required|exists:doctor_types,id',
             'doctor_speciality_id' => 'required|exists:doctor_specialities,id',
@@ -121,14 +129,41 @@ class RegisterController extends Controller
             'registration_no' => 'required|string|max:255',
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
-
         ]);
 
-        $user->doctorProfile()->create($validated);
+        // Using null coalescing operator to handle nullable fields
+        $bio = $validated['bio'] ?? null;
+        $pricing = $validated['pricing'] ?? null;
+        $gender = $validated['gender'] ?? null;
+        $dob = $validated['dob'] ?? null;
+        $district = $validated['district'] ?? null;
+        $thana = $validated['thana'] ?? null;
+        $identification_no = $validated['identification_no'];
+        $registration_no = $validated['registration_no'];
+        $active_from = $validated['active_from'] ?? null;
+        $active_to = $validated['active_to'] ?? null;
+
+        // Create the doctor profile for the user
+        $user->doctorProfile()->create([
+            'doctor_type_id' => $validated['doctor_type_id'],
+            'doctor_speciality_id' => $validated['doctor_speciality_id'],
+            'doctor_title_id' => $validated['doctor_title_id'],
+            'bio' => $bio,
+            'pricing' => $pricing,
+            'gender' => $gender,
+            'dob' => $dob,
+            'district' => $district,
+            'thana' => $thana,
+            'identification_no' => $identification_no,
+            'registration_no' => $registration_no,
+            'active_from' => $active_from,
+            'active_to' => $active_to,
+        ]);
     }
 
     private function createLawyerProfile(User $user, Request $request)
     {
+        // Validate the incoming request
         $validated = $request->validate([
             'lawyer_title_id' => 'required|exists:lawyer_titles,id',
             'bio' => 'nullable|string',
@@ -142,9 +177,121 @@ class RegisterController extends Controller
             'bar_registration_no' => 'required|string|max:255',
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
-
         ]);
 
-        $user->lawyerProfile()->create($validated);
+        // Using null coalescing operator for nullable fields
+        $bio = $validated['bio'] ?? null;
+        $pricing = $validated['pricing'] ?? null;
+        $gender = $validated['gender'] ?? null;
+        $dob = $validated['dob'] ?? null;
+        $district = $validated['district'] ?? null;
+        $thana = $validated['thana'] ?? null;
+        $practice_area = $validated['practice_area'] ?? null;
+        $identification_no = $validated['identification_no'];
+        $bar_registration_no = $validated['bar_registration_no'];
+        $active_from = $validated['active_from'] ?? null;
+        $active_to = $validated['active_to'] ?? null;
+
+        // Create the lawyer profile for the user
+        $user->lawyerProfile()->create([
+            'lawyer_title_id' => $validated['lawyer_title_id'],
+            'bio' => $bio,
+            'pricing' => $pricing,
+            'gender' => $gender,
+            'dob' => $dob,
+            'district' => $district,
+            'thana' => $thana,
+            'practice_area' => $practice_area,
+            'identification_no' => $identification_no,
+            'bar_registration_no' => $bar_registration_no,
+            'active_from' => $active_from,
+            'active_to' => $active_to,
+        ]);
+    }
+
+
+    private function createCommonProfile(User $user, Request $request)
+    {
+        // Validate the incoming request
+        $validated = $request->validate([
+            'bio' => 'nullable|string',
+            'pricing' => 'nullable|numeric|min:0',
+            'gender' => 'nullable|in:male,female,other',
+            'dob' => 'nullable|date|before:today',
+            'district' => 'nullable|string|max:255',
+            'thana' => 'nullable|string|max:255',
+            'identification_no' => 'required|string|max:255',
+            'active_from' => 'nullable|date_format:H:i',
+            'active_to' => 'nullable|date_format:H:i|after:active_from',
+            'unique_identification_no' => 'required|string|max:255',
+            'other_data' => 'nullable',  // Optional other data field (JSON or text)
+        ]);
+
+        // Use null coalescing to handle missing fields
+        $bio = $validated['bio'] ?? null;
+        $pricing = $validated['pricing'] ?? null;
+        $gender = $validated['gender'] ?? null;
+        $dob = $validated['dob'] ?? null;
+        $district = $validated['district'] ?? null;
+        $thana = $validated['thana'] ?? null;
+        $identification_no = $validated['identification_no'];
+        $active_from = $validated['active_from'] ?? null;
+        $active_to = $validated['active_to'] ?? null;
+        $unique_identification_no = $validated['unique_identification_no'];
+
+        // Process `other_data` to ensure it's in JSON format
+        $otherData = $validated['other_data'] ?? null;
+
+        if ($otherData) {
+            // If `other_data` is an array or object, convert it to JSON
+            if (is_array($otherData) || is_object($otherData)) {
+                $otherData = json_encode($otherData);
+            }
+
+            // Check if it's a valid JSON string
+            if (json_decode($otherData) === null && json_last_error() !== JSON_ERROR_NONE) {
+                // If it's not valid JSON, wrap it in a JSON object with the 'data' key
+                $otherData = json_encode(['data' => $otherData]);
+            }
+        }
+
+        // Create the common profile for the user
+        $commonProfile = $user->commonProfile()->create([
+            'bio' => $bio,
+            'pricing' => $pricing,
+            'gender' => $gender,
+            'dob' => $dob,
+            'district' => $district,
+            'thana' => $thana,
+            'identification_no' => $identification_no,
+            'active_from' => $active_from,
+            'active_to' => $active_to,
+        ]);
+
+        // Create the unique identification record for the user
+        $commonProfile->uniqueIdentification()->create([
+            'unique_identification_no' => $unique_identification_no,
+            'other_data' => $otherData,  // Store JSON (either valid or encoded)
+        ]);
+    }
+
+
+    private function generateUniqueUserId()
+    {
+        $uniqueUserId = $this->generateRandomNumber();
+
+        // Check if the unique_user_id already exists in the database
+        while (User::where('unique_user_id', $uniqueUserId)->exists()) {
+            // Regenerate the random user ID if it already exists
+            $uniqueUserId = $this->generateRandomNumber();
+        }
+
+        return $uniqueUserId;
+    }
+
+    private function generateRandomNumber()
+    {
+        // You can generate a random number between a range, or use a larger number to make it unique
+        return rand(100000000, 999999999);  // Example: Generates a random 9-digit number
     }
 }

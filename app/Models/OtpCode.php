@@ -9,6 +9,5 @@ class OtpCode extends Model
 {
     use HasFactory;
 
-    protected $guarded = [    
-    ];
+    protected $fillable = ['phone', 'code', 'expires_at', 'is_verified'];
 }

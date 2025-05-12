@@ -9,7 +9,7 @@ class LawyerProfile extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = ['user_id', 'lawyer_title_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'practice_area', 'identification_no', 'bar_registration_no', 'active_from', 'active_to', 'active_status'];
     protected $table = 'lawyer_profiles';
 
 

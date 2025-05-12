@@ -9,7 +9,7 @@ class ModeratorProfile extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = ['user_id', 'gender', 'dob','avatar', 'active_status'];
 
     public function user()
     {
