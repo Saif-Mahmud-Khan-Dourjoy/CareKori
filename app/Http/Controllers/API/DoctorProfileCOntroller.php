@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\DoctorProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class DoctorProfileCOntroller extends Controller
@@ -12,6 +13,8 @@ class DoctorProfileCOntroller extends Controller
     public function update(Request $request)
     {
         $user = $request->user();
+
+        
 
         // Validate the incoming request
         $validated = $request->validate([
@@ -33,26 +36,39 @@ class DoctorProfileCOntroller extends Controller
             'active_to' => 'nullable|date_format:H:i|after:active_from',
         ]);
 
-        // Update the user's attributes
-        if (isset($validated['phone'])) {
-            $user->phone = $validated['phone'];
+    
+
+
+        DB::beginTransaction();
+        try {
+            // Update the user's attributes
+            if (isset($validated['phone'])) {
+                $user->phone = $validated['phone'];
+            }
+
+            if (isset($validated['name'])) {
+                $user->name = $validated['name'];
+            }
+
+            if (isset($validated['email'])) {
+                $user->email = $validated['email'];
+            }
+
+            $user->save();
+
+            // Update or create the customer profile
+            $user->doctorProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                $validated
+            );
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error updating profile: ' . $e->getMessage()], 500);
         }
 
-        if (isset($validated['name'])) {
-            $user->name = $validated['name'];
-        }
-
-        if (isset($validated['email'])) {
-            $user->email = $validated['email'];
-        }
-
-        $user->save();
-
-        // Update or create the customer profile
-        $user->doctorProfile()->updateOrCreate(
-            ['user_id' => $user->id],
-            $validated
-        );
+ 
 
         return response()->json(['message' => 'Profile updated successfully.']);
     }
@@ -72,8 +88,13 @@ class DoctorProfileCOntroller extends Controller
 
         // Return the user data along with the customer profile
         return response()->json([
-            'user' => $user,
-            'doctor_profile' => $user->doctorProfile,
+            'success' => true,
+            'message' => 'Doctor profile retrieved successfully.',
+            'code' => 200,
+            'status' => true,
+            'data' => $user,
+            // 'doctor_profile' => $user->doctorProfile,
+          
         ]);
     }
 

@@ -11,7 +11,7 @@ class DoctorType extends Controller
     public function index()
     {
         $doctorTypes = ModelsDoctorType::all();
-        return response()->json($doctorTypes);
+        return response()->json(['success'=>true, 'data'=> $doctorTypes]);
     }
 
     // Show a single doctor type by ID
@@ -21,7 +21,7 @@ class DoctorType extends Controller
         if (!$doctorType) {
             return response()->json(['message' => 'Doctor Type not found'], 404);
         }
-        return response()->json($doctorType);
+        return response()->json(['success' => true, 'data' => $doctorType], 200); // 200 for successful retrieval
     }
 
     // Add a new doctor type
@@ -36,13 +36,16 @@ class DoctorType extends Controller
             'type' => $request->type,
         ]);
 
-        return response()->json($doctorType, 201); // 201 for resource creation
+        return response()->json(['success'=>true, 'data'=> $doctorType], 201); // 201 for resource creation
     }
 
     // Update an existing doctor type
     public function update(Request $request, $id)
     {
         $doctorType = ModelsDoctorType::find($id);
+
+      
+        
 
         if (!$doctorType) {
             return response()->json(['message' => 'Doctor Type not found'], 404);
@@ -56,7 +59,7 @@ class DoctorType extends Controller
             'type' => $request->type,
         ]);
 
-        return response()->json($doctorType);
+        return response()->json(['success' => true, 'data' => $doctorType], 200); // 200 for successful update
     }
 
     // Delete a doctor type

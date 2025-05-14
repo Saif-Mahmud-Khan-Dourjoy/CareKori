@@ -46,11 +46,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/create-moderator', [AdminController::class, 'create_moderator']);
 
         //for customer only
-        Route::get('/user/{uniqueUserId}', [AdminController::class, 'getUserWithProfile']);
-        Route::put('/user/{uniqueUserId}', [AdminController::class, 'updateUser']);
-        Route::delete('/user/{uniqueUserId}', [AdminController::class, 'deleteUser']);
-        Route::put('/user/{uniqueUserId}/deactivate', [AdminController::class, 'deactivateUser']);
-        Route::get('/all-user', [AdminController::class, 'getAllUsers']);
+        Route::get('/customer/{uniqueUserId}', [AdminController::class, 'getUserWithProfile']);
+        Route::put('/customer/{uniqueUserId}', [AdminController::class, 'updateUser']);
+        Route::delete('/customer/{uniqueUserId}', [AdminController::class, 'deleteUser']);
+        Route::put('/customer/{uniqueUserId}/deactivate', [AdminController::class, 'deactivateUser']);
+        Route::get('/all-customer', [AdminController::class, 'getAllUsers']);
 
 
         Route::get('/all-moderators', [AdminController::class, 'getAllModerators']);
@@ -99,7 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/doctor-profile', [DoctorProfileCOntroller::class, 'show']);
 
         Route::post('doctor/profile/image', [DoctorProfileCOntroller::class, 'addProfileImage']);
-        Route::put('doctor/profile/image', [DoctorProfileCOntroller::class, 'updateProfileImage']);
+        Route::post('update/doctor/profile/image', [DoctorProfileCOntroller::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/doctor-profile/pricing', [DoctorProfileController::class, 'updatePricing']);

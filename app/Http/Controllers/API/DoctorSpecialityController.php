@@ -11,7 +11,7 @@ class DoctorSpecialityController extends Controller
     public function index()
     {
         $doctorSpecialities = DoctorSpeciality::all();
-        return response()->json($doctorSpecialities);
+        return response()->json([   'success' => true, 'data' => $doctorSpecialities], 200);
     }
 
     // Show a single doctor type by ID
@@ -21,7 +21,7 @@ class DoctorSpecialityController extends Controller
         if (!$doctorSpeciality) {
             return response()->json(['message' => 'Doctor Speciality not found'], 404);
         }
-        return response()->json($doctorSpeciality);
+        return response()->json(['success' => true, 'data' => $doctorSpeciality], 200); // 200 for successful retrieval
     }
 
     // Add a new doctor type
@@ -36,7 +36,7 @@ class DoctorSpecialityController extends Controller
             'specialized_at' => $request->specialized_at,
         ]);
 
-        return response()->json($doctorSpeciality, 201); // 201 for resource creation
+        return response()->json(['success' => true, 'data' => $doctorSpeciality], 201); // 201 for resource creation
     }
 
     // Update an existing doctor type
@@ -56,7 +56,7 @@ class DoctorSpecialityController extends Controller
             'specialized_at' => $request->specialized_at,
         ]);
 
-        return response()->json($doctorSpeciality);
+        return response()->json(['success' => true, 'data' => $doctorSpeciality], 200); // 200 for successful update
     }
 
     // Delete a doctor type

@@ -27,14 +27,20 @@ class AdminController extends Controller
             'active_status' => 'nullable|boolean',
         ]);
 
+        DB::beginTransaction();
+
+        try {
+            $uniqueUserId = $this->generateUniqueUserId();
+
         // Create the user
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => $validated['email']?? null,
             'phone' => $validated['phone'],
             'password' => Hash::make($validated['password']),
             'role_id' => Role::where('name', 'Moderator')->orWhere('name', 'moderator')->first()->id,
-        ]);
+                'unique_user_id' => (string)$uniqueUserId, // Ensure unique_user_id is passed here
+            ]);
 
 
 
@@ -47,26 +53,50 @@ class AdminController extends Controller
 
         ]);
 
-        return response()->json(['message' => 'Moderator created successfully.', 'status' => true, 'code' => 201], 201);
+            DB::commit();
+
+            return response()->json(['message' => 'Moderator created successfully.', 'status' => true, 'code' => 201], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Moderator creation error: ' . $e->getMessage());  // Log the error
+            return response()->json(['error' => 'Moderator creation failed', 'details' => $e->getMessage()], 500); // Return the error details
+        }
+    }
+
+
+    private function generateUniqueUserId()
+    {
+        $uniqueUserId = $this->generateRandomNumber();
+
+        // Check if the unique_user_id already exists in the database
+        while (User::where('unique_user_id', $uniqueUserId)->exists()) {
+            // Regenerate the random user ID if it already exists
+            $uniqueUserId = $this->generateRandomNumber();
+        }
+
+        return $uniqueUserId;
+    }
+
+    private function generateRandomNumber()
+    {
+        // You can generate a random number between a range, or use a larger number to make it unique
+        return rand(100000000, 999999999);  // Example: Generates a random 9-digit number
     }
 
 
     public function getUserWithProfile($uniqueUserId)
     {
-        // // Get the logged-in user
-        // $loggedInUser = auth()->user()->load('role');
-
-        // // Ensure the authenticated user is a Super Admin
-        // if (!$loggedInUser->hasRole('super admin')) {
-        //     return response()->json(['error' => 'Unauthorized'], 403);
-        // }
-
-        // Retrieve the user based on the unique_user_id along with their profile
+        
         $user = User::with('customerProfile')
             ->where('unique_user_id', $uniqueUserId)
             ->firstOrFail();
 
         return response()->json([
+            'success' => true,
+            'message' => 'User retrieved successfully.',
+            'status' => true,
+            'code' => 200,
             'user' => $user,
         ]);
     }
@@ -79,11 +109,14 @@ class AdminController extends Controller
         // Get all users excluding 'super admin' and 'moderator'
         $users = User::with('customerProfile', 'role')
             ->whereHas('role', function ($query) {
-                $query->whereNotIn('name', ['super admin', 'moderator']);
-            })
-            ->get();
+                $query->where('name', 'customer');
+            })->get();
 
-        return response()->json([
+            foreach ($users as $user) {
+                unset($user->id); // Remove the 'id' field from the response
+            }
+
+        return response()->json(['seccess' => true, 'message' => 'All users retrieved successfully.', 'status' => true, 'code' => 200,  
             'users' => $users,
         ], 200);
     }
@@ -112,10 +145,21 @@ class AdminController extends Controller
         // Update user in the 'users' table
         $user->update($validated);
 
+
+        
         // Optionally update customer profile if needed
         if ($request->has('gender') || $request->has('dob') || $request->has('district') || $request->has('sub_district') || $request->has('union_name')) {
-            $customerProfileData = $request->only(['gender', 'dob', 'district', 'sub_district', 'union_name']);
-            $user->customerProfile()->update($customerProfileData);
+            
+            if ($user->customerProfile) {
+               
+                $user->customerProfile->update([
+                    'gender' => $request->input('gender', $user->customerProfile->gender),
+                    'dob' => $request->input('dob', $user->customerProfile->dob),
+                    'district' => $request->input('district', $user->customerProfile->district),
+                    'sub_district' => $request->input('sub_district', $user->customerProfile->sub_district),
+                    'union_name' => $request->input('union_name', $user->customerProfile->union_name),
+                ]);
+            }
         }
 
         return response()->json(['message' => 'User updated successfully.', 'user' => $user, 'status' => true, 'code' => 200], 200);
@@ -130,7 +174,7 @@ class AdminController extends Controller
             ->firstOrFail();
 
         // Deactivate user by setting 'active_status' to false
-        $user->update(['active_status' => false]);
+        $user->customerProfile->update(['active_status' => false]);
 
         return response()->json(['message' => 'User deactivated successfully.', 'user' => $user, 'status' => true, 'code' => 200], 200);
     }
@@ -158,6 +202,13 @@ class AdminController extends Controller
         $moderators = User::with('moderatorProfile')->whereHas('role', function ($query) {
             $query->where('name', 'Moderator');
         })->get();
+
+        foreach ($moderators as $moderator) {
+          
+            unset($moderator->id); 
+        }
+
+        
 
         return response()->json([
             'moderators' => $moderators,
@@ -191,6 +242,8 @@ class AdminController extends Controller
             ->where('unique_user_id', $uniqueModeratorId)
             ->firstOrFail();
 
+            unset($moderator->id); // Remove the 'id' field from the response
+
 
         return response()->json([
             'moderator' => $moderator,
@@ -213,6 +266,8 @@ class AdminController extends Controller
 
     public function updateModerator(Request $request, $uniqueModeratorId)
     {
+
+        
         // Validate the incoming request (exclude password from the validation)
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
@@ -229,7 +284,7 @@ class AdminController extends Controller
         try {
             // Find the user by unique_user_id
             $user = User::where('unique_user_id', $uniqueModeratorId)->firstOrFail();
-
+             
             // Update the user fields (skip the password field)
             $user->update( ['name' => $validated['name'] ?? $user->name,
             'email' => $validated['email'] ?? $user->email,
@@ -296,11 +351,17 @@ class AdminController extends Controller
     }
     public function updateRole(Request $request, $roleId)
     {
-        // Ensure the authenticated user is a Super Admin
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+           
+        ]);
+
 
 
         // Find the role by ID
         $role = Role::findOrFail($roleId);
+
+        
 
         // Update the role with the request data
         $role->update($request->all());
@@ -311,7 +372,7 @@ class AdminController extends Controller
 
 
     public function createServiceProviderRole(Request $request)
-    {
+    {  
         // Validate incoming request
         $request->validate([
             'name' => 'required|string|unique:roles,name', // Role name (doctor, lawyer, etc.)
