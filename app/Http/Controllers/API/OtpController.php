@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\OtpCode;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 
 class OtpController extends Controller
@@ -30,7 +31,7 @@ class OtpController extends Controller
 
     //     $otpCode = rand(1000, 9999);
 
-    //     // OTP কোড ডাটাবেজে সংরক্ষণ
+
     //     OtpCode::updateOrCreate(
     //         ['phone' => $request->phone],
     //         [
@@ -40,54 +41,12 @@ class OtpController extends Controller
     //         ]
     //     );
 
-    //     $token = env('BD_BULK_SMS_API_TOKEN');
-    //     $to = $request->phone;
-    //     $message = "Your OTP code is: $otpCode";
-
-    //     $url = "https://api.bdbulksms.net/api.php?json";
-    //     $data = [
-    //         'to' => $to,
-    //         'message' => $message,
-    //         'token' => $token,
-    //     ];
-
-    //     $ch = curl_init();
-    //     curl_setopt($ch, CURLOPT_URL, $url);
-    //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-    //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-    //     curl_setopt($ch, CURLOPT_ENCODING, '');
-    //     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     $smsResult = curl_exec($ch);
-    //     $curlError = curl_error($ch);
-    //     curl_close($ch);
-
-    //     if ($curlError) {
+    //     $statusMessages= $this->sendToPhone($request, $otpCode);
+    //     if (!$statusMessages) {
     //         return response()->json([
     //             'success' => false,
-    //             'message' => 'cURL Error: ' . $curlError,
+    //             'message' => 'Failed to send OTP',
     //         ], 500);
-    //     }
-
-    //     $response = json_decode($smsResult, true);
-
-    //     if (json_last_error() !== JSON_ERROR_NONE) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Invalid JSON response',
-    //             'raw_response' => $smsResult,
-    //         ], 500);
-    //     }
-
-    //     $statusMessages = [];
-    //     foreach ($response as $res) {
-    //         $status = $res['status'] ?? 'UNKNOWN';
-    //         $statusMsg = $res['statusmsg'] ?? 'No status message';
-    //         $statusMessages[] = [
-    //             'to' => $res['to'] ?? 'Unknown',
-    //             'status' => $status,
-    //             'message' => $statusMsg,
-    //         ];
     //     }
 
     //     return response()->json([
@@ -109,5 +68,208 @@ class OtpController extends Controller
 
         $otp->update(['is_verified' => true]);
         return response()->json(['message' => 'OTP verified']);
+    }
+
+
+
+    public function sendToPhone(Request $request, $otpCode)
+    {
+        $token = env('BD_BULK_SMS_API_TOKEN');
+        $to = $request->phone;
+        $message = "Your OTP code is: $otpCode";
+
+        $url = "https://api.bdbulksms.net/api.php?json";
+        $data = [
+            'to' => $to,
+            'message' => $message,
+            'token' => $token,
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $smsResult = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            return response()->json([
+                'success' => false,
+                'message' => 'cURL Error: ' . $curlError,
+            ], 500);
+        }
+
+        $response = json_decode($smsResult, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid JSON response',
+                'raw_response' => $smsResult,
+            ], 500);
+        }
+
+        $statusMessages = [];
+        foreach ($response as $res) {
+            $status = $res['status'] ?? 'UNKNOWN';
+            $statusMsg = $res['statusmsg'] ?? 'No status message';
+            $statusMessages[] = [
+                'to' => $res['to'] ?? 'Unknown',
+                'status' => $status,
+                'message' => $statusMsg,
+            ];
+        }
+
+        return $statusMessages;
+    }
+
+
+
+    public function resendOtp(Request $request)
+    {
+        // Validate the incoming request (phone number required)
+        $validated = $request->validate([
+            'phone' => 'required|regex:/^01[3-9][0-9]{8}$/',  // Ensure the phone number is valid
+        ]);
+
+        $phone = $validated['phone'];
+
+        // Check if there is an existing OTP record for this phone
+        $otpRecord = OtpCode::where('phone', $phone)
+            ->where('is_verified', false) // Ensure OTP hasn't been verified
+            ->first();
+
+        // If an expired OTP exists, delete it and generate a new one
+        if ($otpRecord) {
+            // Check if the OTP is expired
+            if ($otpRecord->expires_at < Carbon::now()) {
+                // Delete the expired OTP record
+                $otpRecord->delete();
+            } else {
+                // If OTP is still valid, resend it
+                $statusMessages = $this->sendToPhone($request, $otpRecord->code);
+                if (!$statusMessages) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to resend OTP',
+                    ], 500);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'messages' => $statusMessages,
+                ]);
+            }
+        }
+
+        // If no valid OTP or expired OTP exists, generate a new OTP
+        $otp = rand(1000, 9999); // Generate a 4-digit OTP
+
+        // Store the new OTP code
+        OtpCode::updateOrCreate(
+            ['phone' => $phone],
+            [
+                'code' => $otp,
+                'expires_at' => Carbon::now()->addMinutes(10), // Set expiration time
+                'is_verified' => false, // Mark as unverified
+            ]
+        );
+
+        // Send the new OTP
+        $statusMessages = $this->sendToPhone($request, $otp);
+
+        if (!$statusMessages) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend OTP',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'messages' => $statusMessages,
+        ]);
+    }
+
+
+
+
+
+
+    public function sendOtpForPhoneChange(Request $request)
+    {
+        // Validate phone number
+        $validated = $request->validate([
+            'new_phone' => 'required|regex:/^01[3-9][0-9]{8}$/|unique:users,phone',  // Validate new phone number
+        ]);
+
+        $phone = $validated['new_phone'];
+
+        // Generate OTP
+        $otp = rand(1000, 9999); // 4-digit OTP
+
+        // Store OTP in database
+        OtpCode::create([
+            'phone' => $phone,
+            'code' => $otp,
+            'is_verified' => false,
+            'expires_at' => Carbon::now()->addMinutes(5), // OTP expiry
+        ]);
+
+        // Send OTP via SMS or Email (For simplicity, sending via email)
+        $statusMessages= $this->sendToPhone($request, $otp);
+
+        if (!$statusMessages) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend OTP',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'messages' => $statusMessages,
+        ]);
+    }
+
+    // Verify OTP and change phone number
+    public function verifyOtpAndChangePhone(Request $request)
+    {
+        $validated = $request->validate([
+            'new_phone' => 'required|regex:/^01[3-9][0-9]{8}$/',  // Ensure valid phone number format
+            'otp' => 'required|digits:4',  // OTP should be 6 digits
+        ]);
+
+        $phone = $validated['new_phone'];
+        $otp = $validated['otp'];
+
+        // Check if the OTP exists and is unverified
+        $otpRecord = OtpCode::where('phone', $phone)
+            ->where('code', $otp)
+            ->where('is_verified', false)
+            ->where('expires_at', '>', Carbon::now())
+            ->first();
+
+        if (!$otpRecord) {
+            return response()->json(['error' => 'Invalid or expired OTP'], 400);
+        }
+
+        // Verify the OTP
+        $otpRecord->is_verified = true;
+        $otpRecord->save();
+
+        // Update the user's phone number
+    
+        $user = User::find(auth()->user()->id); // Fetch the user model
+        $user->phone = $phone; // Update the phone number
+        $user->save();
+        
+       
+
+        return response()->json(['message' => 'Phone number updated successfully']);
     }
 }

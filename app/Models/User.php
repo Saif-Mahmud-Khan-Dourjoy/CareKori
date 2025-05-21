@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -76,8 +77,71 @@ class User extends Authenticatable
         return $this->hasOne(CommonProfile::class);
     }
 
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);  // A user can have one wallet
+    }
+
+    public function appointmentsAsCustomer()
+    {
+        return $this->hasMany(Appointment::class, 'customer_id');
+    }
+
+    public function appointmentsAsProvider()
+    {
+        return $this->hasMany(Appointment::class, 'provider_id');
+    }
+
+    public function availability()
+    {
+        return $this->hasMany(ServiceProviderAvailability::class, 'provider_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    // A user can have many private documents (if they're the one who created it or created for)
+    public function privateDocumentsCreated()
+    {
+        return $this->hasMany(PrivateDocument::class, 'created_by');
+    }
+
+    public function privateDocumentsReceived()
+    {
+        return $this->hasMany(PrivateDocument::class, 'created_for');
+    }
+
+    public function givenReviews()
+    {
+        return $this->hasMany(Review::class, 'customer_id');
+    }
+
+    public function receivedReviews()
+    {
+        return $this->hasMany(Review::class, 'service_provider_id');
+    }
+
+    public function languageState()
+    {
+        return $this->hasOne(LanguageState::class);  // A user can have one wallet
+    }
+
     public function hasRole($role)
     {
-        return $this->role && $this->role->name === $role;
+        return $this->role && Str::lower($this->role->name) === $role;
+    }
+
+    public static function findByUniqueUserId($uniqueUserId)
+    {
+        return self::where('unique_user_id', $uniqueUserId)->first();
+    }
+
+    public function averageRating()
+    {
+        return $this->receivedReviews()
+            ->where('status', 'approved')
+            ->avg('rating');
     }
 }

@@ -1,0 +1,310 @@
+Before Registering SuperAdmin needs to create role 
+
+for creating role 
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/create-roles",
+
+    "method": "POST",
+    "headers": {
+      "accept": "application/json",
+      'Content-Type': 'multipart/form-data',
+    },
+    "body":{
+    	"name":"anything",
+    	"icon": "nullable|anything",
+    	"identification_placeholder" : "nullable|anything"
+   }
+}
+
+### if role == customer ###
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/register",
+  
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Customer 1",
+      "phone": "01675555555",
+      "role": customer_role_id,
+      "email": "abd@gmail.com",
+      "password": "customer1@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "sub_district": "Mirpur",
+      "union_name": "pallabi"
+    }
+  }
+
+
+### if role == doctor ###
+
+if you want to make subcategory for doctor like - Orthopedics, Gynocologist etc. you need to add data on doctor specialities table 
+
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/doctor-specialities",
+  
+    "method": "POST",
+    "headers": {
+      'Content-Type': 'multipart/form-data',
+      "accept": "application/json"
+    },
+    "body": {
+      "specialized_at": "Orthopedics",
+      "icon": "nullable|anything",
+    }
+}
+
+if you want to create doctor titles for doctor like - Dr., Associate Prof. etc  you need to add data on doctor titles table 
+
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/doctor-titles",
+  
+    "method": "POST",
+    "headers": {
+      'Content-Type': "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "title": "Dr.",
+     
+    }
+}
+
+if you want to create doctor type for doctor like - Medical, Dental, Veterinary.  you need to add data on doctor types table 
+
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/doctor-types",
+  
+    "method": "POST",
+    "headers": {
+      'Content-Type': "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "type": "Medical",
+     
+    }
+}
+
+now register
+{
+    "endpoint": "http://127.0.0.1:8000/api/register",
+  
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Doctor 1",
+      "phone": "01675555555",
+      "role": role_id,
+      "email": "abd@gmail.com",
+      "password": "doctor@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "bio": "Doctor Bio",
+      "pricing": "1000",
+
+      "thana": "Pallabi",
+      "identification_no": "63453531",
+
+      "doctor_type_id": "nullbale|type_id",
+      "doctor_speciality_id": "nullbale|speciality_id",
+      "doctor_title_id": "nullbale|title_id",
+      "registration_no": "12232323"
+    }
+  },
+ 
+
+### if role == lawyer ###
+
+if you want to make subcategory for lawyer like - Criminal Lawyer, Govt. lawyer. you need to add data on lawyer specialities table 
+
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/lawyer-specialities",
+  
+    "method": "POST",
+    "headers": {
+      'Content-Type': 'multipart/form-data',
+      "accept": "application/json"
+    },
+    "body": {
+      "specialized_at": "Criminal Lawyer",
+      "icon": "nullable|anything",
+    }
+}
+
+if you want to create lawyer titles for lawyer like - Advocate, Barrister  etc  you need to add data on lawyer titles table 
+
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/lawyer-titles",
+  
+    "method": "POST",
+    "headers": {
+      'Content-Type': "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "title": "Dr.",
+     
+    }
+}
+
+
+now register
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/register",
+ 
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Lawyer 1",
+      "phone": "01675555555",
+      "role": role_id,
+      "email": "abd@gmail.com",
+      "password": "lawyer@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "bio": "Doctor Bio",
+      "pricing": "1000",
+      "practice_area": "Mirpur",
+      "thana": "Pallabi",
+      "identification_no": "63453531",
+      "bar_registration_no": "74367346",
+      "lawyer_title_id": "nullable|lawyer_title_id",
+      "lawyer_speciality_id":"nullable|lawyer_speciality_id"
+    }
+  },
+
+### these are the main roles for our system.. if you want to create other service providers then- 
+{
+    "endpoint": "http://127.0.0.1:8000/api/create-service-provider",
+ 
+    "method": "POST",
+    "headers": {
+      'Content-Type': 'multipart/form-data',
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Service Provider Name", ( Like engineer, It will creat a role name engineer in role table)
+      'identification_placeholder' : 'nullable|string',
+       'icon' => 'nullable|file',
+    }
+  },
+
+then if you want, create speciality which is sub category for that specific provider in common_provider_specialities table
+{
+    "endpoint": "http://127.0.0.1:8000/api/create-common-provider-speciality",
+ 
+    "method": "POST",
+    "headers": {
+      'Content-Type': 'multipart/form-data',
+      "accept": "application/json"
+    },
+    "body": {
+       'category_id' => 'role_id',
+            'specialized_at' => 'anything',
+            'description' => 'nullable|string',
+            'icon' => 'nullable|file',
+    }
+ },
+
+Now register 
+
+ {
+    "endpoint": "http://127.0.0.1:8000/api/register",
+ 
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Engineer 1",
+      "phone": "01675555555",
+      "role": role_id,
+      "email": "abd@gmail.com",
+      "password": "engineer@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "bio": "Doctor Bio",
+      "pricing": "1000",
+      "thana": "Pallabi",
+      "identification_no": "63453531",
+      "unique_identification_no": "111111111111",
+      "other_data": "nullable|anything as json",
+      "common_speciality_id" : "nullable|common_speciality_id"
+    }
+  },
+
+
+OTP Related 
+
+send----
+
+{
+    "endpoint": "http://127.0.0.1:8000/api/otp/send",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "phone": "01675332900"
+    }
+  }
+
+verify---
+
+  {
+    "endpoint": "http://127.0.0.1:8000/api/otp/verify",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "phone": "01675332900",
+      "code": "1234"
+    }
+  },
+
+Login---
+
+  {
+    "endpoint": "http://127.0.0.1:8000/api/login",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "phone": "01675332900",
+      "password": "56789sdsd"
+    }
+  },
+
+
+
+
+
+

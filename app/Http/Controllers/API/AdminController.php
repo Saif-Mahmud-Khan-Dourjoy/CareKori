@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -32,31 +33,30 @@ class AdminController extends Controller
         try {
             $uniqueUserId = $this->generateUniqueUserId();
 
-        // Create the user
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email']?? null,
-            'phone' => $validated['phone'],
-            'password' => Hash::make($validated['password']),
-            'role_id' => Role::where('name', 'Moderator')->orWhere('name', 'moderator')->first()->id,
+            // Create the user
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'] ?? null,
+                'phone' => $validated['phone'],
+                'password' => Hash::make($validated['password']),
+                'role_id' => Role::where('name', 'Moderator')->orWhere('name', 'moderator')->first()->id,
                 'unique_user_id' => (string)$uniqueUserId, // Ensure unique_user_id is passed here
             ]);
 
 
 
-        // Create the moderator profile
-        ModeratorProfile::create([
-            'user_id' => $user->id,
-            'gender' => $validated['gender'] ?? null,
-            'dob' => $validated['dob'] ?? null,
-            'avatar' => $validated['avatar'] ?? null,
+            // Create the moderator profile
+            ModeratorProfile::create([
+                'user_id' => $user->id,
+                'gender' => $validated['gender'] ?? null,
+                'dob' => $validated['dob'] ?? null,
+                'avatar' => $validated['avatar'] ?? null,
 
-        ]);
+            ]);
 
             DB::commit();
 
             return response()->json(['message' => 'Moderator created successfully.', 'status' => true, 'code' => 201], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Moderator creation error: ' . $e->getMessage());  // Log the error
@@ -87,7 +87,7 @@ class AdminController extends Controller
 
     public function getUserWithProfile($uniqueUserId)
     {
-        
+
         $user = User::with('customerProfile')
             ->where('unique_user_id', $uniqueUserId)
             ->firstOrFail();
@@ -112,11 +112,16 @@ class AdminController extends Controller
                 $query->where('name', 'customer');
             })->get();
 
-            foreach ($users as $user) {
-                unset($user->id); // Remove the 'id' field from the response
-            }
+        foreach ($users as $user) {
+          
+            $user->makeHidden(['id']);
+        }
 
-        return response()->json(['seccess' => true, 'message' => 'All users retrieved successfully.', 'status' => true, 'code' => 200,  
+        return response()->json([
+            'seccess' => true,
+            'message' => 'All users retrieved successfully.',
+            'status' => true,
+            'code' => 200,
             'users' => $users,
         ], 200);
     }
@@ -140,18 +145,18 @@ class AdminController extends Controller
             $validated['password'] = bcrypt($request->password);
         }
 
-       
+
 
         // Update user in the 'users' table
         $user->update($validated);
 
 
-        
+
         // Optionally update customer profile if needed
         if ($request->has('gender') || $request->has('dob') || $request->has('district') || $request->has('sub_district') || $request->has('union_name')) {
-            
+
             if ($user->customerProfile) {
-               
+
                 $user->customerProfile->update([
                     'gender' => $request->input('gender', $user->customerProfile->gender),
                     'dob' => $request->input('dob', $user->customerProfile->dob),
@@ -204,11 +209,12 @@ class AdminController extends Controller
         })->get();
 
         foreach ($moderators as $moderator) {
-          
-            unset($moderator->id); 
+
+           
+            $moderator->makeHidden(['id']);
         }
 
-        
+
 
         return response()->json([
             'moderators' => $moderators,
@@ -242,7 +248,8 @@ class AdminController extends Controller
             ->where('unique_user_id', $uniqueModeratorId)
             ->firstOrFail();
 
-            unset($moderator->id); // Remove the 'id' field from the response
+      
+        $moderator->makeHidden(['id']);
 
 
         return response()->json([
@@ -267,7 +274,7 @@ class AdminController extends Controller
     public function updateModerator(Request $request, $uniqueModeratorId)
     {
 
-        
+
         // Validate the incoming request (exclude password from the validation)
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
@@ -284,11 +291,13 @@ class AdminController extends Controller
         try {
             // Find the user by unique_user_id
             $user = User::where('unique_user_id', $uniqueModeratorId)->firstOrFail();
-             
+
             // Update the user fields (skip the password field)
-            $user->update( ['name' => $validated['name'] ?? $user->name,
-            'email' => $validated['email'] ?? $user->email,
-            'phone' => $validated['phone'] ?? $user->phone]);
+            $user->update([
+                'name' => $validated['name'] ?? $user->name,
+                'email' => $validated['email'] ?? $user->email,
+                'phone' => $validated['phone'] ?? $user->phone
+            ]);
 
             // If the user has an associated moderator profile, update it
             if ($user->moderatorProfile) {
@@ -343,46 +352,116 @@ class AdminController extends Controller
 
         // Find the role by ID
         $role = Role::findOrFail($roleId);
+        $iconPath= $role->icon; // Get the icon path
+        if ($iconPath) {
+            $baseUrl = asset('');
+            $relativePath = str_replace($baseUrl, '', $iconPath);
+            $absolutePath = public_path($relativePath);
+            if (file_exists($absolutePath)) {
+                unlink($absolutePath);
+            }
+        }
 
         // Delete the role
         $role->delete();
 
         return response()->json(['message' => 'Role deleted successfully.']);
     }
+    // public function updateRole(Request $request, $roleId)
+    // {
+    //     $validated = $request->validate([
+    //         'name' => 'required|string|max:255',
+
+    //     ]);
+
+
+
+    //     // Find the role by ID
+    //     $role = Role::findOrFail($roleId);
+
+
+
+    //     // Update the role with the request data
+    //     $role->update($request->all());
+
+    //     return response()->json(['message' => 'Role updated successfully.']);
+    // }
+
+
     public function updateRole(Request $request, $roleId)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-           
+            'icon' => 'nullable|mimes:jpeg,jpg,png|max:2048',
         ]);
 
-
-
-        // Find the role by ID
+        // Find the role
         $role = Role::findOrFail($roleId);
 
-        
+        $iconPath = $role->icon; // Default to existing icon
 
-        // Update the role with the request data
-        $role->update($request->all());
+        // Check if a new icon was uploaded
+        if ($request->hasFile('icon') && $request->file('icon')->isValid()) {
 
-        return response()->json(['message' => 'Role updated successfully.']);
+            // Optional: Delete old icon if exists
+            if ($iconPath) {
+                $baseUrl = asset('');
+                $relativePath = str_replace($baseUrl, '', $iconPath);
+                $absolutePath = public_path($relativePath);
+                if (file_exists($absolutePath)) {
+                    unlink($absolutePath);
+                }
+            }
+
+            // Save new icon
+            $iconFile = $request->file('icon');
+            $filename =  time() . '.' . $iconFile->getClientOriginalExtension();
+            $iconFile->move(public_path('images/icons/role'), $filename);
+
+            // Generate full URL
+            $iconPath = asset('images/icons/role/' . $filename); // or asset('images/' . $documentName)
+        }
+
+        // Update the role
+        $role->update([
+            'name' => $request->name,
+            'icon' => $iconPath, // remains same if no new file provided
+        ]);
+
+        return response()->json([
+            'message' => 'Role updated successfully.',
+            'role' => $role
+        ]);
     }
 
 
 
+
     public function createServiceProviderRole(Request $request)
-    {  
+    {
         // Validate incoming request
         $request->validate([
             'name' => 'required|string|unique:roles,name', // Role name (doctor, lawyer, etc.)
             'identification_placeholder' => 'nullable|string', // Role-specific placeholder (e.g., license number)
+            'icon' => 'nullable|mimes:jpeg,jpg,png|max:2048',
         ]);
+
+        $iconPath = null;
+        if ($request->hasFile('icon')) {
+            $iconFile = $request->file('icon');
+            $filename =  time() . '.' . $iconFile->getClientOriginalExtension();
+            $iconFile->move(public_path('images/icons/role'), $filename);
+
+            // Generate full URL
+            $iconPath = asset('images/icons/role/' . $filename); // or asset('images/' . $documentName)
+
+        }
 
         // Create the role with the provided data
         $role = Role::create([
             'name' => $request->name,  // Name of the new role
-            'identification_placeholder' => $request->identification_placeholder,  // Additional role-specific field
+            'identification_placeholder' => $request->identification_placeholder,  
+            'icon' => $iconPath,  // Icon path
         ]);
 
         // Return response with success message and role data
@@ -390,5 +469,41 @@ class AdminController extends Controller
             'message' => 'Service provider created successfully.',
             'role' => $role
         ], 201);
+    }
+
+    public function approveProvider($uniqueUserId)
+    {
+        // Find the user by unique_user_id, ensuring the role is eager loaded
+        $user = User::where('unique_user_id', $uniqueUserId)->with('role')->firstOrFail();
+
+        // Check for the role and update the corresponding profile
+        switch (Str::lower($user->role->name)) {
+            case 'doctor':
+                if ($user->doctorProfile) {
+                    $user->doctorProfile->update(['active_status' => true]);
+                }
+                break;
+
+            case 'lawyer':
+                if ($user->lawyerProfile) {
+                    $user->lawyerProfile->update(['active_status' => true]);
+                }
+                break;
+
+            case 'moderator':
+                if ($user->moderatorProfile) {
+                    $user->moderatorProfile->update(['active_status' => true]);
+                }
+                break;
+
+            default:
+                if ($user->commonProfile) {
+                    $user->commonProfile->update(['active_status' => true]);
+                }
+                break;
+        }
+
+        // Return response with success message
+        return response()->json(['message' => 'Approved successfully.']);
     }
 }

@@ -3,25 +3,25 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\DoctorSpeciality;
+use App\Models\LawyerSpeciality;
 use Illuminate\Http\Request;
 
-class DoctorSpecialityController extends Controller
+class LawyerSpecialityController extends Controller
 {
     public function index()
     {
-        $doctorSpecialities = DoctorSpeciality::all();
-        return response()->json([   'success' => true, 'data' => $doctorSpecialities], 200);
+        $lawyerSpecialities = LawyerSpeciality::all();
+        return response()->json(['success' => true, 'data' => $lawyerSpecialities], 200);
     }
 
     // Show a single doctor type by ID
     public function show($id)
     {
-        $doctorSpeciality = DoctorSpeciality::find($id);
-        if (!$doctorSpeciality) {
+        $lawyerSpeciality = LawyerSpeciality::find($id);
+        if (!$lawyerSpeciality) {
             return response()->json(['message' => 'Doctor Speciality not found'], 404);
         }
-        return response()->json(['success' => true, 'data' => $doctorSpeciality], 200); // 200 for successful retrieval
+        return response()->json(['success' => true, 'data' => $lawyerSpeciality], 200); // 200 for successful retrieval
     }
 
     // Add a new doctor type
@@ -44,20 +44,20 @@ class DoctorSpecialityController extends Controller
 
         }
 
-        $doctorSpeciality = DoctorSpeciality::create([
+        $lawyerSpeciality = LawyerSpeciality::create([
             'specialized_at' => $request->specialized_at,
             'icon' => $iconPath,
         ]);
 
-        return response()->json(['success' => true, 'data' => $doctorSpeciality], 201); // 201 for resource creation
+        return response()->json(['success' => true, 'data' => $lawyerSpeciality], 201); // 201 for resource creation
     }
 
     // Update an existing doctor type
     public function update(Request $request, $id)
     {
-        $doctorSpeciality = DoctorSpeciality::find($id);
+        $lawyerSpeciality = LawyerSpeciality::find($id);
 
-        if (!$doctorSpeciality) {
+        if (!$lawyerSpeciality) {
             return response()->json(['message' => 'Doctor Speciality not found'], 404);
         }
 
@@ -65,10 +65,11 @@ class DoctorSpecialityController extends Controller
             'specialized_at' => 'required|string|unique:doctor_specialities,specialized_at,' . $id . '|max:255',
             'icon' => 'nullable|mimes:jpeg,jpg,png|max:2048',
         ]);
-        
+
+
         $iconPath = null;
-        if ($doctorSpeciality->icon) {
-            $iconPath = $doctorSpeciality->icon;
+        if ($lawyerSpeciality->icon) {
+            $iconPath = $lawyerSpeciality->icon;
         }
         if ($request->hasFile('icon') && $request->file('icon')->isValid()) {
 
@@ -90,35 +91,36 @@ class DoctorSpecialityController extends Controller
             // Generate full URL
             $iconPath = asset('images/icons/role/speciality/' . $filename); // or asset('images/' . $documentName)
         }
+        
 
-        $doctorSpeciality->update([
+        $lawyerSpeciality->update([
             'specialized_at' => $request->specialized_at,
             'icon' => $iconPath,
         ]);
 
-        return response()->json(['success' => true, 'data' => $doctorSpeciality], 200); // 200 for successful update
+        return response()->json(['success' => true, 'data' => $lawyerSpeciality], 200); // 200 for successful update
     }
 
     // Delete a doctor type
     public function destroy($id)
     {
-        $doctorSpeciality = DoctorSpeciality::find($id);
+        $lawyerSpeciality = LawyerSpeciality::find($id);
 
-        if (!$doctorSpeciality) {
+        if (!$lawyerSpeciality) {
             return response()->json(['message' => 'Doctor Speciality not found'], 404);
         }
 
         // Optional: Delete icon if exists
-        if ($doctorSpeciality->icon) {
+        if ($lawyerSpeciality->icon) {
             $baseUrl = asset('');
-            $relativePath = str_replace($baseUrl, '', $doctorSpeciality->icon);
+            $relativePath = str_replace($baseUrl, '', $lawyerSpeciality->icon);
             $absolutePath = public_path($relativePath);
             if (file_exists($absolutePath)) {
                 unlink($absolutePath);
             }
         }
 
-        $doctorSpeciality->delete();
+        $lawyerSpeciality->delete();
 
         return response()->json(['message' => 'Doctor Speciality deleted successfully']);
     }

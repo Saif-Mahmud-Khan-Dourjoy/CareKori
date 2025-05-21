@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\API;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\LawyerProfile;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
-class ModeratorProfile extends Controller
+class LawyerProfileController extends Controller
 {
     public function update(Request $request)
     {
@@ -17,9 +18,19 @@ class ModeratorProfile extends Controller
             'name' => 'sometimes|required|string|max:255',
             'phone' => 'sometimes|required|regex:/^01[3-9][0-9]{8}$/',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'lawyer_title_id' => 'required|exists:lawyer_titles,id',
+            'bio' => 'nullable|string',
+            'pricing' => 'nullable|numeric|min:0',
             'gender' => 'nullable|in:male,female,other',
-            'dob' => 'nullable|date',
-           
+            'dob' => 'nullable|date|before:today',
+            'district' => 'nullable|string|max:255',
+            'thana' => 'nullable|string|max:255',
+            'practice_area' => 'nullable|string|max:255',
+            'identification_no' => 'required|string|max:255',
+            'registration_no' => 'required|string|max:255',
+            'bar_registration_no' => 'required|string|max:255',
+            'active_from' => 'nullable|date_format:H:i',
+            'active_to' => 'nullable|date_format:H:i|after:active_from',
         ]);
 
         // Update the user's attributes
@@ -38,7 +49,7 @@ class ModeratorProfile extends Controller
         $user->save();
 
         // Update or create the customer profile
-        $user->moderatorProfile()->updateOrCreate(
+        $user->lawyerProfile()->updateOrCreate(
             ['user_id' => $user->id],
             $validated
         );
@@ -52,12 +63,15 @@ class ModeratorProfile extends Controller
         $user = $request->user();
 
         // Load the associated customer profile
-        $user->load('moderatorProfile');
+        $user->load([
+            'lawyerProfile',
+            'lawyerProfile.lawyerTitle'
+        ]);
 
         // Return the user data along with the customer profile
         return response()->json([
             'user' => $user,
-            'moderator_profile' => $user->moderatorProfile,
+            'lawyer_profile' => $user->lawyerProfile,
         ]);
     }
 
@@ -73,13 +87,13 @@ class ModeratorProfile extends Controller
         // Generate a unique file name
         $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
 
-        $request->avatar->move(public_path('images/moderator'), $imageName);
+        $request->avatar->move(public_path('images/lawyer'), $imageName);
 
         // Generate full URL
-        $imageUrl = asset('images/moderator/' . $imageName); // or asset('images/' . $imageName)
+        $imageUrl = asset('images/lawyer/' . $imageName); // or asset('images/' . $imageName)
 
         // Update the user's avatar in the database with full URL
-        $user->moderatorProfile()->update(['avatar' => $imageUrl]);
+        $user->lawyerProfile()->update(['avatar' => $imageUrl]);
 
         return response()->json([
             'message' => 'Profile image added successfully.',
@@ -111,13 +125,13 @@ class ModeratorProfile extends Controller
 
         $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
 
-        $request->avatar->move(public_path('images/moderator'), $imageName);
+        $request->avatar->move(public_path('images/lawyer'), $imageName);
 
         // Generate full URL
-        $imageUrl = asset('images/moderator/' . $imageName); // or asset('images/' . $imageName)
+        $imageUrl = asset('images/lawyer/' . $imageName); // or asset('images/' . $imageName)
 
         // Update the user's avatar in the database with full URL
-        $user->moderatorProfile()->update(['avatar' => $imageUrl]);
+        $user->lawyerProfile()->update(['avatar' => $imageUrl]);
 
         return response()->json([
             'message' => 'Profile image Updated successfully.',
@@ -125,5 +139,53 @@ class ModeratorProfile extends Controller
             'status' => true,
             'code' => 200
         ], 200);
+    }
+
+    public function updatePricing(Request $request)
+    {
+        $request->validate([
+            'pricing' => 'required|numeric',
+        ]);
+
+        // Find the Lawyer profile by user_id
+        $lawyerProfile = LawyerProfile::where('user_id', auth()->user()->id)->first();
+
+        if (!$lawyerProfile) {
+            return response()->json(['message' => 'Lawyer profile not found'], 404);
+        }
+
+        // Update pricing
+        $lawyerProfile->update([
+            'pricing' => $request->pricing,
+        ]);
+
+        return response()->json([
+            'message' => 'Lawyer pricing updated successfully',
+            'data' => $lawyerProfile
+        ]);
+    }
+
+    public function updateAvailability(Request $request)
+    {
+        $request->validate([
+            'availability' => 'required|boolean',
+        ]);
+
+        // Find the Lawyer profile by user_id
+        $lawyerProfile = LawyerProfile::where('user_id', auth()->user()->id)->first();
+
+        if (!$lawyerProfile) {
+            return response()->json(['message' => 'Lawyer profile not found'], 404);
+        }
+
+        // Update availability status
+        $lawyerProfile->update([
+            'availability' => $request->availability,
+        ]);
+
+        return response()->json([
+            'message' => 'Lawyer availability updated successfully',
+            'data' => $lawyerProfile
+        ]);
     }
 }

@@ -110,15 +110,23 @@ class RegisterController extends Controller
             'sub_district' => $request->sub_district,
             'union_name' => $request->union_name,
         ]);
+
+        $user->wallet()->create([
+            'balance' => 0, // Initialize the wallet balance to 0
+        ]);
+
+        $user->languageState()->create([
+            'state' => 'bn', 
+        ]);
     }
 
     private function createDoctorProfile(User $user, Request $request)
     {
         // Validate the incoming request
         $validated = $request->validate([
-            'doctor_type_id' => 'required|exists:doctor_types,id',
-            'doctor_speciality_id' => 'required|exists:doctor_specialities,id',
-            'doctor_title_id' => 'required|exists:doctor_titles,id',
+            'doctor_type_id' => 'sometimes|nullable|exists:doctor_types,id',
+            'doctor_speciality_id' => 'sometimes|nullable|exists:doctor_specialities,id',
+            'doctor_title_id' => 'sometimes|nullable|exists:doctor_titles,id',
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
             'gender' => 'nullable|in:male,female,other',
@@ -145,9 +153,9 @@ class RegisterController extends Controller
 
         // Create the doctor profile for the user
         $user->doctorProfile()->create([
-            'doctor_type_id' => $validated['doctor_type_id'],
-            'doctor_speciality_id' => $validated['doctor_speciality_id'],
-            'doctor_title_id' => $validated['doctor_title_id'],
+            'doctor_type_id' => $validated['doctor_type_id'] ?? null,
+            'doctor_speciality_id' => $validated['doctor_speciality_id'] ?? null,
+            'doctor_title_id' => $validated['doctor_title_id']  ?? null,
             'bio' => $bio,
             'pricing' => $pricing,
             'gender' => $gender,
@@ -165,7 +173,8 @@ class RegisterController extends Controller
     {
         // Validate the incoming request
         $validated = $request->validate([
-            'lawyer_title_id' => 'required|exists:lawyer_titles,id',
+            'lawyer_title_id' => 'sometimes|nullable|exists:lawyer_titles,id',
+            'lawyer_speciality_id' => 'sometimes|nullable|exists:lawyer_specialities,id',
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
             'gender' => 'nullable|in:male,female,other',
@@ -194,7 +203,8 @@ class RegisterController extends Controller
 
         // Create the lawyer profile for the user
         $user->lawyerProfile()->create([
-            'lawyer_title_id' => $validated['lawyer_title_id'],
+            'lawyer_title_id' => $validated['lawyer_title_id'] ?? null,
+            'lawyer_speciality_id' => $validated['lawyer_speciality_id'] ?? null,
             'bio' => $bio,
             'pricing' => $pricing,
             'gender' => $gender,
@@ -214,6 +224,7 @@ class RegisterController extends Controller
     {
         // Validate the incoming request
         $validated = $request->validate([
+            'common_speciality_id' => 'sometimes|nullable|exists:common_provider_specialities,id',
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
             'gender' => 'nullable|in:male,female,other',
@@ -257,6 +268,7 @@ class RegisterController extends Controller
 
         // Create the common profile for the user
         $commonProfile = $user->commonProfile()->create([
+            'common_speciality_id' => $validated['common_speciality_id'] ?? null,
             'bio' => $bio,
             'pricing' => $pricing,
             'gender' => $gender,

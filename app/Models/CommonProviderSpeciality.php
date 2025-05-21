@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class CommonProviderSpeciality extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'category_id',
+        'specialized_at',
+        'description',
+    ];
+
+    public function category()
+    {
+        return $this->belongsTo(Role::class, 'category_id');
+    }
+}

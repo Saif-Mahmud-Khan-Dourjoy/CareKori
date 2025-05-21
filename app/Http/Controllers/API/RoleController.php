@@ -43,6 +43,7 @@ class RoleController extends Controller
         // Manually validate to catch and format errors
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|unique:roles,name',
+            'icon' => 'nullable|mimes:jpeg,jpg,png|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -54,8 +55,21 @@ class RoleController extends Controller
             ], 422);
         }
 
+        // Handle icon upload if present
+        $iconPath = null;
+        if ($request->hasFile('icon')) {
+            $iconFile = $request->file('icon');
+            $filename =  time() . '.' . $iconFile->getClientOriginalExtension();
+            $iconFile->move(public_path('images/icons/role'), $filename);
+
+            // Generate full URL
+            $iconPath = asset('images/icons/role/' . $filename); // or asset('images/' . $documentName)
+           
+        }
+
+      
         // Create the new role
-        Role::create(['name' => $request->name]);
+        Role::create(['name' => $request->name ,  'icon' => $iconPath ]);
 
         return response()->json([
             'message' => 'Role created successfully.',

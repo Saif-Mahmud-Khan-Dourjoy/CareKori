@@ -1,0 +1,65 @@
+[
+    {
+        "availability_type": "appointment",
+        "day": "monday",
+        "slot_duration": 10,
+        "time_slots": [
+            {
+                "start_time": "09:00",
+                "end_time": "12:00"
+            },
+            {
+                "start_time": "14:00",
+                "end_time": "16:00"
+            }
+        ]
+    },
+
+    {
+        "availabilities": [
+            {
+                "availability_type": "appointment",
+                "day": "monday",
+                "slot_duration": 30,
+                "time_slots": [
+                    { "start_time": "09:00", "end_time": "10:00" },
+                    { "start_time": "10:30", "end_time": "11:00" }
+                ]
+            },
+            {
+                "availability_type": "instant_consultation",
+                "day": "tuesday",
+                "slot_duration": 15,
+                "time_slots": [{ "start_time": "12:00", "end_time": "13:00" }]
+            }
+        ]
+    },
+
+    {
+        "availability_type": "appointment",
+        "day": "monday",
+        "slot_duration": 10,
+        "time_slots": [
+            {
+                "start_time": "09:00",
+                "end_time": "12:00"
+            }
+        ]
+    },
+    {
+        "availability_type": "appointment",
+        "day": "monday",
+        "slot_duration": 30,
+        "start_time": "09:00",
+        "end_time": "10:00"
+    },
+    {
+        "customer_unique_user_id": "customer_unique_id",
+        "provider_unique_user_id": "provider_unique_id",
+        "appointment_time": "2023-06-12 09:00:00"
+    },
+    {
+        "appointment_time": "2023-06-13 11:00:00",
+        "status": "confirmed"
+    }
+]

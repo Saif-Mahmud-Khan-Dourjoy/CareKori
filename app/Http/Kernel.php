@@ -74,5 +74,7 @@ class Kernel extends HttpKernel
         'lawyer' => \App\Http\Middleware\VerifyLawyer::class,  // Add this line
         'commonprovider' => \App\Http\Middleware\VerifyAllCommonProvider::class,  // Add this lin
         'moderator' => \App\Http\Middleware\VerifyModerator::class,  // Add this line
+        'provider' => \App\Http\Middleware\VerifyProvider::class,  // Add this line
+
     ];
 }

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\API;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 
-class ModeratorProfile extends Controller
+class CustomerProfile extends Controller
 {
     public function update(Request $request)
     {
@@ -15,17 +16,19 @@ class ModeratorProfile extends Controller
         // Validate the incoming request
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'phone' => 'sometimes|required|regex:/^01[3-9][0-9]{8}$/',
+            // 'phone' => 'sometimes|required|regex:/^01[3-9][0-9]{8}$/',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
             'gender' => 'nullable|in:male,female,other',
             'dob' => 'nullable|date',
-           
+            'district' => 'nullable|string|max:255',
+            'sub_district' => 'nullable|string|max:255',
+            'union_name' => 'nullable|string|max:255',
         ]);
 
         // Update the user's attributes
-        if (isset($validated['phone'])) {
-            $user->phone = $validated['phone'];
-        }
+        // if (isset($validated['phone'])) {
+        //     $user->phone = $validated['phone'];
+        // }
 
         if (isset($validated['name'])) {
             $user->name = $validated['name'];
@@ -38,7 +41,7 @@ class ModeratorProfile extends Controller
         $user->save();
 
         // Update or create the customer profile
-        $user->moderatorProfile()->updateOrCreate(
+        $user->customerProfile()->updateOrCreate(
             ['user_id' => $user->id],
             $validated
         );
@@ -52,12 +55,12 @@ class ModeratorProfile extends Controller
         $user = $request->user();
 
         // Load the associated customer profile
-        $user->load('moderatorProfile');
+        $user->load(['customerProfile', 'languageState', 'wallet']);
 
         // Return the user data along with the customer profile
         return response()->json([
             'user' => $user,
-            'moderator_profile' => $user->moderatorProfile,
+            'customer_profile' => $user->customerProfile,
         ]);
     }
 
@@ -73,13 +76,13 @@ class ModeratorProfile extends Controller
         // Generate a unique file name
         $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
 
-        $request->avatar->move(public_path('images/moderator'), $imageName);
+        $request->avatar->move(public_path('images/customer'), $imageName);
 
         // Generate full URL
-        $imageUrl = asset('images/moderator/' . $imageName); // or asset('images/' . $imageName)
+        $imageUrl = asset('images/customer/' . $imageName); // or asset('images/' . $imageName)
 
         // Update the user's avatar in the database with full URL
-        $user->moderatorProfile()->update(['avatar' => $imageUrl]);
+        $user->customerProfile()->update(['avatar' => $imageUrl]);
 
         return response()->json([
             'message' => 'Profile image added successfully.',
@@ -111,13 +114,13 @@ class ModeratorProfile extends Controller
 
         $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
 
-        $request->avatar->move(public_path('images/moderator'), $imageName);
+        $request->avatar->move(public_path('images/customer'), $imageName);
 
         // Generate full URL
-        $imageUrl = asset('images/moderator/' . $imageName); // or asset('images/' . $imageName)
+        $imageUrl = asset('images/customer/' . $imageName); // or asset('images/' . $imageName)
 
         // Update the user's avatar in the database with full URL
-        $user->moderatorProfile()->update(['avatar' => $imageUrl]);
+        $user->customerProfile()->update(['avatar' => $imageUrl]);
 
         return response()->json([
             'message' => 'Profile image Updated successfully.',
@@ -125,5 +128,33 @@ class ModeratorProfile extends Controller
             'status' => true,
             'code' => 200
         ], 200);
+    }
+
+    public function checkPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthorized.',
+                'status' => false,
+            ], 401);
+        }
+
+        if (Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'Password is correct.',
+                'status' => true,
+            ], 200);
+        } else {
+            return response()->json([
+                'message' => 'Password is incorrect.',
+                'status' => false,
+            ], 403);
+        }
     }
 }

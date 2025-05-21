@@ -14,4 +14,9 @@ class Role extends Model
     {
         return $this->hasMany(User::class);
     }
+    
+    public function commonProviderSpecialities()
+    {
+        return $this->hasMany(CommonProviderSpeciality::class, 'category_id');
+    }
 }

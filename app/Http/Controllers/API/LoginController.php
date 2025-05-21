@@ -141,34 +141,38 @@ class LoginController extends Controller
         $user->load(
             match ($role) {
                 'doctor' => ['doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle'],
-                'lawyer' => ['lawyerProfile.lawyerTitle'],
-                'customer' => ['customerProfile'],
+                'lawyer' => ['lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality'],
+                'customer' => ['customerProfile','wallet', 'languageState'],
                 'moderator' => ['moderatorProfile'],
+                'super admin'=>[],
                 
-                default => ['commonProfile.uniqueIdentification'],
+                default => ['commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality'],
             }
         );
 
+        $user->makeHidden('id');
+
         // Step 6: Select appropriate profile
-        $profile = match ($role) {
-            'doctor' => $user->doctorProfile,
-            'lawyer' => $user->lawyerProfile,
-            'customer' => $user->customerProfile,
-            'moderator' => $user->moderatorProfile,
-            'super admin' => [],
-            default => $user->commonProfile,
-        };
+        // $profile = match ($role) {
+        //     'doctor' => $user->doctorProfile,
+        //     'lawyer' => $user->lawyerProfile,
+        //     'customer' => $user->customerProfile,
+        //     'moderator' => $user->moderatorProfile,
+        //     'super admin' => [],
+        //     default => $user->commonProfile,
+        // };
 
         // Step 7: Return the res'super admin' => [],ponse
         return response()->json([
-            'user' => [
-                'unique_user_id' => $user->unique_user_id,
-                'name' => $user->name,
-                'phone' => $user->phone,
-                'email' => $user->email,
-                'role' => ['name' => $user->role->name, 'id' => $user->role->id],
-                'profile' => $profile,
-            ],
+            // 'user' => [
+            //     'unique_user_id' => $user->unique_user_id,
+            //     'name' => $user->name,
+            //     'phone' => $user->phone,
+            //     'email' => $user->email,
+            //     'role' => ['name' => $user->role->name, 'id' => $user->role->id],
+            //     'profile' => $profile,
+            // ],
+            'user'=> $user,
             'token' => $user->createToken('carekori-token')->plainTextToken,
             'message' => 'Login successful',
             'status' => true,

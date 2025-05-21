@@ -9,7 +9,7 @@ class CommonProfile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'active_from', 'active_to', 'active_status'];
+    protected $fillable = ['user_id', 'common_speciality_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'active_from', 'active_to', 'active_status'];
 
     protected $table = 'common_profiles';
 
@@ -21,5 +21,10 @@ class CommonProfile extends Model
     public function uniqueIdentification()
     {
         return $this->hasOne(UniqueIdentification::class);
+    }
+
+    public function commonSpeciality()
+    {
+        return $this->belongsTo(CommonProviderSpeciality::class);
     }
 }
