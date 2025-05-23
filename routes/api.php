@@ -25,8 +25,10 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
+use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\UnAuthenticatedController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -266,3 +268,12 @@ Route::post('/otp/resend', [OtpController::class, 'resendOtp']);
 Route::get('/all-service-provider', [ServiceProvider::class, 'getServiceProvider']);
 Route::get('/service-provider-speciality/{roleId}', [ServiceProvider::class, 'serviceProviderSpeciality']);
 Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+
+
+
+
+Route::post('/pay', [PaymentController::class, 'initiate']);
+Route::post('/payment/success', [PaymentController::class, 'success']);
+Route::post('/payment/fail', [PaymentController::class, 'fail']);
+Route::post('/payment/ipn', [PaymentController::class, 'ipn']);
