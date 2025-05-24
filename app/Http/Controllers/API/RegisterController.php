@@ -122,6 +122,9 @@ class RegisterController extends Controller
 
     private function createDoctorProfile(User $user, Request $request)
     {
+        $request->merge([
+            'payment_type' => strtoupper($request->payment_type),
+        ]);
         // Validate the incoming request
         $validated = $request->validate([
             'doctor_type_id' => 'sometimes|nullable|exists:doctor_types,id',
@@ -137,6 +140,8 @@ class RegisterController extends Controller
             'registration_no' => 'required|string|max:255',
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
+            'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
+            'payment_account' => 'nullable|string|max:255',
         ]);
 
         // Using null coalescing operator to handle nullable fields
@@ -150,6 +155,8 @@ class RegisterController extends Controller
         $registration_no = $validated['registration_no'];
         $active_from = $validated['active_from'] ?? null;
         $active_to = $validated['active_to'] ?? null;
+        $paymentType = $validated['payment_type'] ?? null;
+        $paymentAccount = $validated['payment_account'] ?? null;
 
         // Create the doctor profile for the user
         $user->doctorProfile()->create([
@@ -166,11 +173,17 @@ class RegisterController extends Controller
             'registration_no' => $registration_no,
             'active_from' => $active_from,
             'active_to' => $active_to,
+            'payment_type' => $paymentType,
+            'payment_account' => $paymentAccount,
         ]);
     }
 
     private function createLawyerProfile(User $user, Request $request)
     {
+
+        $request->merge([
+            'payment_type' => strtoupper($request->payment_type),
+        ]);
         // Validate the incoming request
         $validated = $request->validate([
             'lawyer_title_id' => 'sometimes|nullable|exists:lawyer_titles,id',
@@ -186,6 +199,8 @@ class RegisterController extends Controller
             'bar_registration_no' => 'required|string|max:255',
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
+            'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
+            'payment_account' => 'nullable|string|max:255',
         ]);
 
         // Using null coalescing operator for nullable fields
@@ -200,6 +215,9 @@ class RegisterController extends Controller
         $bar_registration_no = $validated['bar_registration_no'];
         $active_from = $validated['active_from'] ?? null;
         $active_to = $validated['active_to'] ?? null;
+        $paymentType = $validated['payment_type'] ?? null;
+        $paymentAccount = $validated['payment_account'] ?? null;
+        // Validate the payment type and account if provided
 
         // Create the lawyer profile for the user
         $user->lawyerProfile()->create([
@@ -216,12 +234,18 @@ class RegisterController extends Controller
             'bar_registration_no' => $bar_registration_no,
             'active_from' => $active_from,
             'active_to' => $active_to,
+            'payment_type' => $paymentType,
+            'payment_account' => $paymentAccount,
         ]);
     }
 
 
     private function createCommonProfile(User $user, Request $request)
     {
+        $request->merge([
+            'payment_type' => strtoupper($request->payment_type),
+        ]);
+       
         // Validate the incoming request
         $validated = $request->validate([
             'common_speciality_id' => 'sometimes|nullable|exists:common_provider_specialities,id',
@@ -236,6 +260,8 @@ class RegisterController extends Controller
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'unique_identification_no' => 'required|string|max:255',
             'other_data' => 'nullable',  // Optional other data field (JSON or text)
+            'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
+            'payment_account' => 'nullable|string|max:255',
         ]);
 
         // Use null coalescing to handle missing fields
@@ -248,6 +274,8 @@ class RegisterController extends Controller
         $identification_no = $validated['identification_no'];
         $active_from = $validated['active_from'] ?? null;
         $active_to = $validated['active_to'] ?? null;
+        $paymentType = $validated['payment_type'] ?? null;
+        $paymentAccount = $validated['payment_account'] ?? null;
         $unique_identification_no = $validated['unique_identification_no'];
 
         // Process `other_data` to ensure it's in JSON format
@@ -278,6 +306,8 @@ class RegisterController extends Controller
             'identification_no' => $identification_no,
             'active_from' => $active_from,
             'active_to' => $active_to,
+            'payment_type' => $paymentType,
+            'payment_account' => $paymentAccount,
         ]);
 
         // Create the unique identification record for the user

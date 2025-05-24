@@ -9,7 +9,7 @@ class DoctorProfile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'doctor_type_id', 'doctor_speciality_id', 'doctor_title_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'registration_no', 'active_from', 'active_to', 'active_status'];
+    protected $fillable = ['user_id', 'doctor_type_id', 'doctor_speciality_id', 'doctor_title_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'registration_no', 'active_from', 'active_to', 'active_status','payment_type', 'payment_account'];
 
     protected $table = 'doctor_profiles';
 
