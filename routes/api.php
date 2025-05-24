@@ -25,6 +25,7 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
+use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\UnAuthenticatedController;
 
@@ -65,7 +66,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/language-state', [LanguageStateController::class, 'getLanguageState']);
         Route::post('/language-state', [LanguageStateController::class, 'createOrUpdateLanguageState']);
-        
     });
 
     //moderator
@@ -242,6 +242,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Common Provider Speciality
     Route::get('/common-provider-specialities/{roleId}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialitiesByRoleId']);
 
+
+
+    Route::get('/providers/search', [ProviderController::class, 'search']);
 
 
 
