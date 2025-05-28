@@ -227,7 +227,7 @@ class AppointmentController extends Controller
         $appointment = Appointment::create([
             'customer_id' => $customer->id,
             'provider_id' => $provider->id,
-            'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),,
+            'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
             'status' => 'pending',
             'price' => $pricing,
         ]);

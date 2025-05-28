@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Events\PrivateNotificationEvent;
+use App\Events\TestPublicNotification;
 use App\Http\Controllers\Controller;
 use App\Models\ModeratorProfile;
 use App\Models\Role;
@@ -506,4 +508,28 @@ class AdminController extends Controller
         // Return response with success message
         return response()->json(['message' => 'Approved successfully.']);
     }
+
+    public function sendNotification()
+    {
+        event(new TestPublicNotification('Hello from Laravel backend!'));
+
+        return response()->json(['message' => 'Notification sent!']);
+    }
+
+    public function sendPrivateNotification(Request $request)
+    {
+        $user = $request->user();  // Authenticated user via Sanctum
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
+
+        event(new PrivateNotificationEvent("Hello {$user->name}, this is a private notification!", $user->unique_user_id));
+
+        return response()->json(['message' => 'Private notification sent!']);
+    }
+
+
+    
 }

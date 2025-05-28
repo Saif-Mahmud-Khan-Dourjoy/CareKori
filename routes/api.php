@@ -28,6 +28,7 @@ use App\Http\Controllers\API\ModeratorProfile;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\UnAuthenticatedController;
+use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +40,9 @@ use App\Http\Controllers\API\UnAuthenticatedController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
+// Broadcast::routes();
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -269,3 +273,9 @@ Route::post('/otp/resend', [OtpController::class, 'resendOtp']);
 Route::get('/all-service-provider', [ServiceProvider::class, 'getServiceProvider']);
 Route::get('/service-provider-speciality/{roleId}', [ServiceProvider::class, 'serviceProviderSpeciality']);
 Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+
+
+
+Route::get('/send-test-notification', action: [AdminController::class, 'sendNotification']);
+Route::middleware('auth:sanctum')->get('/send-private-notification', [AdminController::class, 'sendPrivateNotification']);

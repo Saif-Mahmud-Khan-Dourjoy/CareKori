@@ -10,8 +10,11 @@ use App\Models\CustomerProfile;
 use App\Models\DoctorProfile;
 use App\Models\LawyerProfile;
 use App\Models\OtpCode;
+use App\Notifications\ProviderRegisteredNotification;
+
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 
@@ -59,12 +62,14 @@ class RegisterController extends Controller
             ]);
 
             $this->createProfile($user, $request);
+           
+
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Registration successful',
-                'token' => $user->createToken('carekori-token')->plainTextToken,
+                // 'token' => $user->createToken('carekori-token')->plainTextToken,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -176,6 +181,15 @@ class RegisterController extends Controller
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
         ]);
+
+
+        $admins = User::whereHas('role', function ($query) {
+            $query->whereIn('name', ['super admin', 'moderator']);
+        })->get();
+
+        foreach ($admins as $admin) {
+            $admin->notify(new ProviderRegisteredNotification($user, $admin));
+        }
     }
 
     private function createLawyerProfile(User $user, Request $request)
