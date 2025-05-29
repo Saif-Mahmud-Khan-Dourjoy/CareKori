@@ -60,7 +60,7 @@ class ServiceProvider extends Controller
         $role= Role::find($roleId);
         switch (Str::lower($role->name)) {
             case 'doctor':
-                $serviceProvider = User::where('role_id', $roleId)->whereHas('dotorProfile', function ($query) use ($specialityId) {
+                $serviceProvider = User::where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
                     $query->where('doctor_speciality_id', $specialityId);
                 })->get();
                 break;

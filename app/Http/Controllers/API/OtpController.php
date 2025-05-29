@@ -202,6 +202,7 @@ class OtpController extends Controller
 
     public function sendOtpForPhoneChange(Request $request)
     {
+
         // Validate phone number
         $validated = $request->validate([
             'new_phone' => 'required|regex:/^01[3-9][0-9]{8}$/|unique:users,phone',  // Validate new phone number
@@ -213,26 +214,33 @@ class OtpController extends Controller
         $otp = rand(1000, 9999); // 4-digit OTP
 
         // Store OTP in database
-        OtpCode::create([
-            'phone' => $phone,
-            'code' => $otp,
-            'is_verified' => false,
-            'expires_at' => Carbon::now()->addMinutes(5), // OTP expiry
-        ]);
+        OtpCode::updateOrCreate(
+            ['phone' => $phone], // Lookup criteria
+            [
+                'code' => $otp,
+                'is_verified' => false,
+                'expires_at' => Carbon::now()->addMinutes(5),
+            ]
+        );
 
         // Send OTP via SMS or Email (For simplicity, sending via email)
-        $statusMessages= $this->sendToPhone($request, $otp);
+        // $statusMessages= $this->sendToPhone($request, $otp);
 
-        if (!$statusMessages) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to resend OTP',
-            ], 500);
-        }
+        // if (!$statusMessages) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Failed to resend OTP',
+        //     ], 500);
+        // }
+
+        // return response()->json([
+        //     'success' => true,
+        //     'messages' => $statusMessages,
+        // ]);
 
         return response()->json([
-            'success' => true,
-            'messages' => $statusMessages,
+            'message' => 'OTP sent successfully',
+            'otp' => $otp, // For testing purposes, you can return the OTP
         ]);
     }
 

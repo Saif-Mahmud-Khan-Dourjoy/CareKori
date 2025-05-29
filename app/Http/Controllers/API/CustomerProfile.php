@@ -13,6 +13,9 @@ class CustomerProfile extends Controller
     {
         $user = $request->user();
 
+
+
+
         // Validate the incoming request
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
@@ -48,6 +51,9 @@ class CustomerProfile extends Controller
 
         return response()->json(['message' => 'Profile updated successfully.']);
     }
+
+   
+
 
     public function show(Request $request)
     {

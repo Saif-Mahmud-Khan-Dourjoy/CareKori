@@ -61,7 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
-        Route::post('/phone/change/otp/verify', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
+        Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
 
 
         Route::get('/language-state', [LanguageStateController::class, 'getLanguageState']);
