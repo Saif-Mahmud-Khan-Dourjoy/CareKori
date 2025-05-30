@@ -89,57 +89,73 @@ class ServiceProviderController extends Controller
     //     return response()->json(['message' => 'Schedule updated successfully']);
     // }
 
+    // Real implementation of storeAvailability method
 
-    public function storeAvailability(Request $request )
-    {
-        $validated = $request->validate([
-            'availability_type' => 'required|in:appointment,instant_consultation',
-            'day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-            'slot_duration' => 'required|integer|min:5|max:60',  // Duration for the slot (5 - 60 minutes)
-            'time_slots' => 'required|array',
-            'time_slots.*.start_time' => 'required|date_format:H:i',
-            'time_slots.*.end_time' => 'required|date_format:H:i|after:start_time',
-        ]);
 
-        // Get provider 
-        $provider = auth()->user();
+    // public function storeAvailability(Request $request )
+    // {
+    //     $validated = $request->validate([
+    //         'availability_type' => 'required|in:appointment,instant_consultation',
+    //         'day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+    //         'slot_duration' => 'required|integer|min:5|max:60',  // Duration for the slot (5 - 60 minutes)
+    //         'time_slots' => 'required|array',
+    //         'time_slots.*.start_time' => 'required|date_format:H:i',
+    //         'time_slots.*.end_time' => 'required|date_format:H:i|after:start_time',
+    //     ]);
 
-        if (!$provider) {
-            return response()->json(['error' => 'Provider not found'], 404);
-        }
+    //     // Get provider 
+    //     $provider = auth()->user();
 
-       
+    //     if (!$provider) {
+    //         return response()->json(['error' => 'Provider not found'], 404);
+    //     }
 
-        // Store the provider's availability with the slot duration
-        foreach ($validated['time_slots'] as $timeSlot) {
-            $availability = ServiceProviderAvailability::create([
-                'provider_id' => $provider->id,
-                'availability_type' => $validated['availability_type'],
-                'day' => $validated['day'],
-                'start_time' => $timeSlot['start_time'],
-                'end_time' => $timeSlot['end_time'],
-                'slot_duration' => $validated['slot_duration'],
-            ]);
 
-           
-        }
 
-        return response()->json(['message' => 'Schedule added successfully']);
-    }
+    //     // Store the provider's availability with the slot duration
+    //     foreach ($validated['time_slots'] as $timeSlot) {
+    //         $availability = ServiceProviderAvailability::create([
+    //             'provider_id' => $provider->id,
+    //             'availability_type' => $validated['availability_type'],
+    //             'day' => $validated['day'],
+    //             'start_time' => $timeSlot['start_time'],
+    //             'end_time' => $timeSlot['end_time'],
+    //             'slot_duration' => $validated['slot_duration'],
+    //         ]);
+
+
+    //     }
+
+    //     return response()->json(['message' => 'Schedule added successfully']);
+    // }
 
     // public function storeAvailability(Request $request)
     // {
+
+    //     $provider = auth()->user();
+
+    //     $check = ServiceProviderAvailability::where('provider_id', $provider->id)->exists();
+
+    //     if ($check) {
+    //         return response()->json(['error' => 'You have already added your availability'], 400);
+    //     }
+
+
+
+
     //     $validated = $request->validate([
+    //         'slot_duration' => 'required|integer|min:5|max:60',  // Global slot duration
     //         'availabilities' => 'required|array',
-    //         'availabilities.*.availability_type' => 'required|in:appointment,instant_consultation',
+    //         'availabilities.*.availability_type' => 'required|in:appointment,instant',
     //         'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-    //         'availabilities.*.slot_duration' => 'required|integer|min:5|max:60',
     //         'availabilities.*.time_slots' => 'required|array',
     //         'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
     //         'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
     //     ]);
 
-    //     $provider = auth()->user();
+
+
+
 
     //     if (!$provider) {
     //         return response()->json(['error' => 'Provider not found'], 404);
@@ -147,19 +163,70 @@ class ServiceProviderController extends Controller
 
     //     foreach ($validated['availabilities'] as $availabilityBlock) {
     //         foreach ($availabilityBlock['time_slots'] as $slot) {
+    //             // Use the global slot_duration for each time slot
     //             ServiceProviderAvailability::create([
     //                 'provider_id' => $provider->id,
     //                 'availability_type' => $availabilityBlock['availability_type'],
     //                 'day' => $availabilityBlock['day'],
     //                 'start_time' => $slot['start_time'],
     //                 'end_time' => $slot['end_time'],
-    //                 'slot_duration' => $availabilityBlock['slot_duration'],
+    //                 'slot_duration' => $validated['slot_duration'],  // Apply the global slot_duration here
     //             ]);
     //         }
     //     }
 
     //     return response()->json(['message' => 'Availabilities stored successfully']);
     // }
+
+    public function storeAvailability(Request $request)
+    {
+
+        $provider = auth()->user();
+
+        $check = ServiceProviderAvailability::where('provider_id', $provider->id)->exists();
+
+        if ($check) {
+            return response()->json(['error' => 'You have already added your availability'], 400);
+        }
+
+
+
+
+        $validated = $request->validate([
+          
+            'availabilities' => 'required|array',
+            'availabilities.*.availability_type' => 'required|in:appointment,instant',
+            'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'availabilities.*.slot_duration' => 'required|integer|min:5|max:60',
+            'availabilities.*.time_slots' => 'required|array',
+            'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
+            'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
+        ]);
+
+
+
+
+
+        if (!$provider) {
+            return response()->json(['error' => 'Provider not found'], 404);
+        }
+
+        foreach ($validated['availabilities'] as $availabilityBlock) {
+            foreach ($availabilityBlock['time_slots'] as $slot) {
+                // Use the global slot_duration for each time slot
+                ServiceProviderAvailability::create([
+                    'provider_id' => $provider->id,
+                    'availability_type' => $availabilityBlock['availability_type'],
+                    'day' => $availabilityBlock['day'],
+                    'start_time' => $slot['start_time'],
+                    'end_time' => $slot['end_time'],
+                    'slot_duration' => $availabilityBlock['slot_duration'],  
+                ]);
+            }
+        }
+
+        return response()->json(['message' => 'Availabilities stored successfully']);
+    }
 
     // Function to generate slots based on custom duration (e.g., 10 or 15 minutes)
     private function generateTimeSlots($availability, $startTime, $endTime, $slotDuration)
@@ -267,7 +334,7 @@ class ServiceProviderController extends Controller
             'slot_duration' => $validated['slot_duration'],
         ]);
 
-       
+
 
         return response()->json(['message' => 'Schedule updated successfully']);
     }
@@ -308,7 +375,8 @@ class ServiceProviderController extends Controller
     // }
 
 
-    public function deleteAvailability($availabilityId) {
+    public function deleteAvailability($availabilityId)
+    {
         // Get provider by unique_user_id (assume the provider is the authenticated user)
         $provider = auth()->user();
 
@@ -330,6 +398,4 @@ class ServiceProviderController extends Controller
 
         return response()->json(['message' => 'Schedule deleted successfully']);
     }
-
-    
 }

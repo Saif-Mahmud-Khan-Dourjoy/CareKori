@@ -216,6 +216,8 @@ class AppointmentController extends Controller
 
         $slotAvailability = Appointment::where('provider_id', $provider->id)
             ->where('appointment_time', Carbon::parse($validated['appointment_time']))
+
+            ->where('status', '!=', 'cancelled')
             ->first();
 
         if (!$availability || $slotAvailability) {
@@ -223,26 +225,96 @@ class AppointmentController extends Controller
         }
 
 
+        $prev_appointment = Appointment::where('customer_id', $customer->id)
+            ->where('provider_id', $provider->id)
+            ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']))
+            ->where('status',  'cancelled')
+            ->first();
+
+        if ($prev_appointment) {
+            // Delete the cancelled appointment
+            $prev_appointment->delete();
+        }
+
         // Create the appointment
         $appointment = Appointment::create([
             'customer_id' => $customer->id,
             'provider_id' => $provider->id,
-            'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),,
+            'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
             'status' => 'pending',
             'price' => $pricing,
         ]);
 
-    
+
 
         // Deduct the balance from the customer’s wallet
         $customer->wallet->decrement('balance', $pricing);
+
+        // $message = "A customer has booked for an appointment in " . $validated['appointment_time'];
+
+        // $this->sendToPhone($provider->phone, $message);
 
         return response()->json([
             'message' => 'Appointment booked successfully',
             'appointment' => $appointment
         ]);
     }
-    
+
+    public function sendToPhone($phone, $messageToSend)
+    {
+        $token = env('BD_BULK_SMS_API_TOKEN');
+        $to = $phone;
+        $message = $messageToSend;
+
+        $url = "https://api.bdbulksms.net/api.php?json";
+        $data = [
+            'to' => $to,
+            'message' => $message,
+            'token' => $token,
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $smsResult = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            return response()->json([
+                'success' => false,
+                'message' => 'cURL Error: ' . $curlError,
+            ], 500);
+        }
+
+        $response = json_decode($smsResult, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid JSON response',
+                'raw_response' => $smsResult,
+            ], 500);
+        }
+
+        $statusMessages = [];
+        foreach ($response as $res) {
+            $status = $res['status'] ?? 'UNKNOWN';
+            $statusMsg = $res['statusmsg'] ?? 'No status message';
+            $statusMessages[] = [
+                'to' => $res['to'] ?? 'Unknown',
+                'status' => $status,
+                'message' => $statusMsg,
+            ];
+        }
+
+        return $statusMessages;
+    }
+
     public function getAppointmentsByUser($uniqueUserId)
     {
         // Fetch user by unique_user_id
@@ -253,11 +325,98 @@ class AppointmentController extends Controller
         }
 
         $appointments = Appointment::where('customer_id', $user->id)
-            // ->orWhere('provider_id', $user->id)
+            ->with('provider.role') // Load provider and their role
+            ->orderBy('appointment_time', 'asc')
             ->get();
+
+
+        // Load role-specific profiles for each provider
+        foreach ($appointments as $appointment) {
+            $provider = $appointment->provider;
+
+            if (!$provider || !$provider->role) {
+                continue;
+            }
+
+            $roleName = strtolower($provider->role->name);
+
+            if ($roleName === 'doctor') {
+                $provider->load([
+                    'doctorProfile',
+                    'doctorProfile.doctorType',
+                    'doctorProfile.doctorSpeciality',
+                    'doctorProfile.doctorTitle'
+                ]);
+            } elseif ($roleName === 'lawyer') {
+                $provider->load([
+                    'lawyerProfile',
+                    'lawyerProfile.lawyerSpeciality',
+                    'lawyerProfile.lawyerTitle'
+                ]);
+            } else {
+                $provider->load([
+                    'commonProfile',
+                    'commonProfile.uniqueIdentification',
+                    'commonProfile.commonSpeciality'
+                ]);
+            }
+        }
 
         return response()->json(['appointments' => $appointments]);
     }
+
+    public function upcomingAppointmentsForUser($uniqueUserId)
+    {
+        // Fetch user by unique_user_id
+        $user = User::findByUniqueUserId($uniqueUserId);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Get upcoming appointments
+        $appointments = Appointment::where('customer_id', $user->id)
+            ->where('status', 'confirmed')
+            ->where('appointment_time', '>', now())
+            ->with('provider.role') // Load provider and their role
+            ->orderBy('appointment_time', 'asc')
+            ->get();
+
+        // Load role-specific profiles for each provider
+        foreach ($appointments as $appointment) {
+            $provider = $appointment->provider;
+
+            if (!$provider || !$provider->role) {
+                continue;
+            }
+
+            $roleName = strtolower($provider->role->name);
+
+            if ($roleName === 'doctor') {
+                $provider->load([
+                    'doctorProfile',
+                    'doctorProfile.doctorType',
+                    'doctorProfile.doctorSpeciality',
+                    'doctorProfile.doctorTitle'
+                ]);
+            } elseif ($roleName === 'lawyer') {
+                $provider->load([
+                    'lawyerProfile',
+                    'lawyerProfile.lawyerSpeciality',
+                    'lawyerProfile.lawyerTitle'
+                ]);
+            } else {
+                $provider->load([
+                    'commonProfile',
+                    'commonProfile.uniqueIdentification',
+                    'commonProfile.commonSpeciality'
+                ]);
+            }
+        }
+
+        return response()->json(['appointments' => $appointments]);
+    }
+
 
     public function getAppointmentsByProvider($uniqueUserId)
     {
@@ -268,7 +427,31 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'Provider not found'], 404);
         }
 
-        $appointments = Appointment::where('provider_id', $provider->id)->get();
+        $appointments = Appointment::with('customer.customerProfile')->where('provider_id', $provider->id)->get();
+
+        return response()->json(['appointments' => $appointments]);
+    }
+
+    public function upcomingAppointmentsForProvider($uniqueUserId)
+    {
+        // Fetch user by unique_user_id
+        $provider = User::findByUniqueUserId($uniqueUserId);
+
+        if (!$provider) {
+            return response()->json(['error' => 'Provider not found'], 404);
+        }
+
+        // Get upcoming appointments
+        $appointments = Appointment::where('provider_id', $provider->id)
+            ->where('status', 'confirmed')
+            ->where('appointment_time', '>', now())
+            ->with('customer.customerProfile') // Load provider and their role
+            ->orderBy('appointment_time', 'asc')
+            ->get();
+
+
+
+
 
         return response()->json(['appointments' => $appointments]);
     }
@@ -356,7 +539,7 @@ class AppointmentController extends Controller
     //                 break;
 
     //             case 'completed':
-                    
+
     //                 break;
     //         }
     //     }
@@ -370,9 +553,9 @@ class AppointmentController extends Controller
         $appointment = Appointment::findOrFail($appointmentId);
 
         // Check if the authenticated user is either the provider, the customer, or a super admin
-        if ($appointment->customer_id !== auth()->user()->id && $appointment->provider_id !== auth()->user()->id && !auth()->user()->hasRole('super admin')) {
-            return response()->json(['error' => 'Unauthorized to delete this appointment'], 403);
-        }
+        // if ($appointment->customer_id !== auth()->user()->id && $appointment->provider_id !== auth()->user()->id && !auth()->user()->hasRole('super admin')) {
+        //     return response()->json(['error' => 'Unauthorized to delete this appointment'], 403);
+        // }
 
         // Delete the appointment
         $appointment->delete();
@@ -380,23 +563,41 @@ class AppointmentController extends Controller
         return response()->json(['message' => 'Appointment deleted successfully']);
     }
 
-    public function deleteAppointmentWithinTime($appointmentId)
+    // public function deleteAppointmentWithinTime($appointmentId)
+    // {
+    //     $appointment = Appointment::findOrFail($appointmentId);
+
+
+
+    //     // Check if the appointment is less than 24 hours from creating
+    //     if (now()->diffInHours($appointment->appointment_time, false) > 24) {
+    //         return response()->json([
+    //             'error' => 'Appointment cannot be deleted now.'
+    //         ], 403);
+    //     }
+
+    //     // Delete the appointment
+    //     $appointment->delete();
+
+    //     return response()->json(['message' => 'Appointment deleted successfully']);
+    // }
+
+    public function cancelAppointmentWithinTime($appointmentId)
     {
         $appointment = Appointment::findOrFail($appointmentId);
 
-      
-
-        // Check if the appointment is less than 24 hours from creating
-        if (now()->diffInHours($appointment->appointment_time, false) > 24) {
+        // Check if the appointment is less than 24 hours away
+        if (now()->diffInHours($appointment->appointment_time, false) < 24) {
             return response()->json([
-                'error' => 'Appointment cannot be deleted now.'
+                'error' => 'Appointment cannot be cancelled now.'
             ], 403);
         }
 
-        // Delete the appointment
-        $appointment->delete();
+        // Update the status to 'cancelled'
+        $appointment->status = 'cancelled';
+        $appointment->save();
 
-        return response()->json(['message' => 'Appointment deleted successfully']);
+        return response()->json(['message' => 'Appointment cancelled successfully']);
     }
 
     public function updateAppointment(Request $request, $appointmentId)
@@ -405,6 +606,7 @@ class AppointmentController extends Controller
             'appointment_time' => 'sometimes|nullable|date_format:Y-m-d H:i:s', // If you want to change the appointment time
             'status' => 'sometimes|nullable|in:confirmed,cancelled,completed', // Three types of status: confirmed, cancelled, completed
         ]);
+
 
         // Find the appointment by its ID
         $appointment = Appointment::findOrFail($appointmentId);
@@ -417,7 +619,7 @@ class AppointmentController extends Controller
             // Check if the new slot is available
             $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
                 // ->where('day', $newAppointmentTime->format('l')) // Get the day of the week (Monday, Tuesday, etc.)
-            ->where('day', strtolower($newAppointmentTime->format('l')))
+                ->where('day', strtolower($newAppointmentTime->format('l')))
 
                 ->first();
 
@@ -429,8 +631,7 @@ class AppointmentController extends Controller
 
                 if (!$slotAvailability) {
                     // The slot is available, so update the appointment and mark the slot as booked
-                    $appointment->update(['appointment_time' => $validated['appointment_time']]);   
-
+                    $appointment->update(['appointment_time' => $validated['appointment_time']]);
                 } else {
                     return response()->json(['error' => 'The selected time slot is not available.'], 400);
                 }
@@ -442,7 +643,7 @@ class AppointmentController extends Controller
         // Step 2: Handle the status update
         if (isset($validated['status'])) {
             // Update the appointment status
-            
+
 
             // Handle logic based on the status change
             switch ($validated['status']) {
@@ -465,6 +666,37 @@ class AppointmentController extends Controller
     }
 
 
+    public function updateAppointmentStatus(Request $request, $appointmentId)
+    {
+        $validated = $request->validate([
+
+            'status' => 'required|in:pending,confirmed,cancelled,completed', // Three types of status: pending,confirmed, cancelled, completed
+        ]);
+
+
+        // Find the appointment by its ID
+        $appointment = Appointment::findOrFail($appointmentId);
+
+        $customer = $appointment->customer;
+
+        // Step 1: Check if the appointment time is being updated
+
+
+        // Step 2: Handle the status update
+        if (isset($validated['status'])) {
+            // Update the appointment status
+
+
+            // Handle logic based on the status change
+            $appointment->update(['status' => $validated['status']]);
+            // $message = 'Your appointment status has been updated to ' . $validated['status'] . '.';
+            // $this->sendToPhone($customer->phone, $message);
+        }
+
+        return response()->json(['message' => 'Appointment Status updated successfully', 'appointment' => $appointment]);
+    }
+
+
 
 
     // public function checkAvailability(Request $request)
@@ -483,7 +715,7 @@ class AppointmentController extends Controller
 
     //     // Get the provider's availability for the selected date
     //     $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
-            
+
     //         ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))
     //         ->where('availability_type', 'appointment')
 
@@ -564,6 +796,7 @@ class AppointmentController extends Controller
             foreach ($timeSlots as $slot) {
                 $isBooked = Appointment::where('provider_id', $provider->id)
                     ->where('appointment_time', $slot)
+                    ->where('status', '!=', 'cancelled') // Exclude cancelled appointments
                     ->exists();
 
                 $slotsWithStatus[] = [

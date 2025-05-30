@@ -54,9 +54,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/update/profile/image', [CustomerProfile::class, 'updateProfileImage']);
 
         Route::post('/appointments', [AppointmentController::class, 'bookAppointment']);
-        Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
-        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
-        Route::delete('/delete/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointmentWithinTime']);
+        // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
+        Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
+        Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
+
+
+        
+        Route::get('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
         Route::get('/check-availability/{provider_unique_user_id}/{appointment_date}', [AppointmentController::class, 'checkAvailability']);
 
 
@@ -66,6 +70,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/language-state', [LanguageStateController::class, 'getLanguageState']);
         Route::post('/language-state', [LanguageStateController::class, 'createOrUpdateLanguageState']);
+
+
+        Route::get('/document/list-provider-members/{roleId}', [DocumentController::class, 'listProviderMembers']);
+        Route::get('/providers/{providerId}/documents', [DocumentController::class, 'getDocumentsBetweenUsers']);
+        Route::get('/documents/{documentId}/download', [DocumentController::class, 'downloadDocument']);
+        Route::get('/documents/{providerId}/download-all', [DocumentController::class, 'downloadAllDocuments']);
     });
 
     //moderator
@@ -101,8 +111,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/providers/schedule', [ServiceProviderController::class, 'storeAvailability']);
         Route::put('/providers/schedule/{id}', [ServiceProviderController::class, 'updateAvailability']);
         Route::delete('/providers/schedule/{id}', [ServiceProviderController::class, 'deleteAvailability']);
-        Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
-        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+        Route::get('/appointments/provider/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByProvider']);
+
+
+        Route::get('/appointments/provider/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForProvider']);
+        // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+        // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
+        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
+       
     });
 
 
@@ -175,9 +191,8 @@ Route::middleware('auth:sanctum')->group(function () {
         //approve status
         Route::put('/approve-provider/{uniqueUserId}', [AdminController::class, 'approveProvider']);
 
-        Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
-        Route::get('/appointments/provider/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByProvider']);
-        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+       
+       
 
         //common provider speciality
         Route::post('/create-common-provider-speciality', [CommonProviderSpeciality::class, 'addCommonProviderSpeciality']);
@@ -185,6 +200,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialityById']);
         Route::post('/update/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'updateCommonProviderSpeciality']);
         Route::delete('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'deleteCommonProviderSpeciality']);
+
+
+
+
+        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
     });
 
 
@@ -221,6 +241,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Documents
     Route::post('/document/upload', [DocumentController::class, 'upload']);
+   
+    Route::post('/document/upload-multiple', [DocumentController::class, 'uploadMultiple']);
+    
     Route::get('/document/user/{uniqueId}', [DocumentController::class, 'getVerificationDocuments']);
     Route::get('/document/user/{uniqueId}/public', [DocumentController::class, 'getPublicDocuments']);
     Route::get('/document/appointment/{id}', [DocumentController::class, 'getDocumentsByAppointment']);

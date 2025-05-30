@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class ServiceProviderAvailability extends Model
 {
     use HasFactory;
-    protected $fillable = ['provider_id', 'availability_type', 'day', 'start_time', 'end_time'];
+    protected $fillable = ['provider_id', 'availability_type', 'day', 'start_time', 'end_time', 'slot_duration'];
 
     public function provider()
     {
