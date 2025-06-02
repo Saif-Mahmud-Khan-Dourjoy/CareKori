@@ -328,10 +328,10 @@ class RegisterController extends Controller
         if ($request->hasFile('avatar')) {
             $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
 
-            $request->avatar->move(public_path('images/common_provider'), $imageName);
+            $request->avatar->move(public_path("images/{$user->role->name}"), $imageName);
 
             // Generate full URL
-            $imageUrl = asset('images/common_provider/' . $imageName);
+            $imageUrl = asset("images/{$user->role->name}/" . $imageName); 
 
 
             $validated['avatar'] = $imageUrl; // Store the path in the validated data
