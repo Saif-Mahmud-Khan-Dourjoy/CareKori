@@ -30,14 +30,14 @@ class RegisterController extends Controller
         ]);
 
 
-        // $otp = OtpCode::where('phone', $request->phone)
-        //     ->where('is_verified', true)
-        //     ->where('expires_at', '>', now())
-        //     ->first();
+        $otp = OtpCode::where('phone', $request->phone)
+            ->where('is_verified', true)
+            ->where('expires_at', '>', now())
+            ->first();
 
-        // if (!$otp) {
-        //     return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
-        // }
+        if (!$otp) {
+            return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
+        }
 
 
 
@@ -64,7 +64,7 @@ class RegisterController extends Controller
 
             return response()->json([
                 'message' => 'Registration successful',
-                // 'token' => $user->createToken('carekori-token')->plainTextToken,
+                'token' => $user->createToken('carekori-token')->plainTextToken,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
