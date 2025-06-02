@@ -13,14 +13,14 @@ class OtpController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate(['phone' => 'required|regex:/^01[3-9][0-9]{8}$/']);
-        $code = rand(1000, 9999);
+        $code = 1234;//rand(1000, 9999);
 
         OtpCode::updateOrCreate(
             ['phone' => $request->phone],
             ['code' => $code, 'expires_at' => now()->addMinutes(5), 'is_verified' => false]
         );
 
-        return response()->json(['message' => 'OTP sent', 'otp' => $code]); // Simulated
+        return response()->json(['message' => 'OTP sent', 'otp' => $code,'expires_at' => now()->addMinutes(5)]); // Simulated
     }
 
     // public function sendOtp(Request $request)
