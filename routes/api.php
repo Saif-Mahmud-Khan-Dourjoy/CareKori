@@ -42,6 +42,12 @@ use App\Http\Controllers\API\UnAuthenticatedController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::post('/refresh-token', [LoginController::class, 'refreshToken']);
+    Route::get('/check-token', [LoginController::class, 'checkToken']);
+});
+
+Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function () {
+
 
     //customer
 
@@ -59,7 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
 
 
-        
+
         Route::get('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
         Route::get('/check-availability/{provider_unique_user_id}/{appointment_date}', [AppointmentController::class, 'checkAvailability']);
 
@@ -67,7 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
         Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
 
-      
+
 
 
 
@@ -123,7 +129,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
         // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
-       
     });
 
 
@@ -196,8 +201,8 @@ Route::middleware('auth:sanctum')->group(function () {
         //approve status
         Route::put('/approve-provider/{uniqueUserId}', [AdminController::class, 'approveProvider']);
 
-       
-       
+
+
 
         //common provider speciality
         Route::post('/create-common-provider-speciality', [CommonProviderSpeciality::class, 'addCommonProviderSpeciality']);
@@ -246,9 +251,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Documents
     Route::post('/document/upload', [DocumentController::class, 'upload']);
-   
+
     Route::post('/document/upload-multiple', [DocumentController::class, 'uploadMultiple']);
-    
+
     Route::get('/document/user/{uniqueId}', [DocumentController::class, 'getVerificationDocuments']);
     Route::get('/document/user/{uniqueId}/public', [DocumentController::class, 'getPublicDocuments']);
     Route::get('/document/appointment/{id}', [DocumentController::class, 'getDocumentsByAppointment']);

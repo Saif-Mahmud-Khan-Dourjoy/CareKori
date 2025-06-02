@@ -76,5 +76,7 @@ class Kernel extends HttpKernel
         'moderator' => \App\Http\Middleware\VerifyModerator::class,  // Add this line
         'provider' => \App\Http\Middleware\VerifyProvider::class,  // Add this line
 
+        'check.token.expiration' => \App\Http\Middleware\CheckTokenExpiration::class,
+
     ];
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 class LoginController extends Controller
@@ -179,4 +180,57 @@ class LoginController extends Controller
             'code' => 200,
         ]);
     }
+
+    public function refreshToken(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Revoke current token
+        $user->currentAccessToken()->delete();
+
+        // Issue new token
+        $tokenResult = $user->createToken('carekori-token');
+
+        $expirationMinutes = env('SANCTUM_TOKEN_EXPIRATION', 60);
+        $expiresAt = Carbon::now()->addMinutes($expirationMinutes);
+        
+    
+
+        return response()->json([
+            'access_token' => $tokenResult->plainTextToken,
+            'token_type' => 'Bearer',
+            'expires_at' => $expiresAt->toDateTimeString(),
+        ]);
+    }
+
+
+    public function checkToken(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['valid' => false, 'message' => 'Unauthenticated'], 401);
+        }
+
+        $token = $user->currentAccessToken();
+
+        if (!$token) {
+            return response()->json(['valid' => false, 'message' => 'Token not found'], 401);
+        }
+
+        $expirationMinutes = env('SANCTUM_TOKEN_EXPIRATION', 60);
+
+        $expiresAt = $token->created_at->addMinutes($expirationMinutes);
+
+        if ($expiresAt->isPast()) {
+            return response()->json(['valid' => false, 'message' => 'Token expired'], 401);
+        }
+
+        return response()->json(['valid' => true, 'message' => 'Token is valid']);
+    }
+    
 }
