@@ -67,6 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
         Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
 
+      
+
+
+
+
 
         Route::get('/language-state', [LanguageStateController::class, 'getLanguageState']);
         Route::post('/language-state', [LanguageStateController::class, 'createOrUpdateLanguageState']);
@@ -292,3 +297,8 @@ Route::post('/otp/resend', [OtpController::class, 'resendOtp']);
 Route::get('/all-service-provider', [ServiceProvider::class, 'getServiceProvider']);
 Route::get('/service-provider-speciality/{roleId}', [ServiceProvider::class, 'serviceProviderSpeciality']);
 Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+
+Route::post('/forget-password/otp/send', [OtpController::class, 'sendOtpForForgetPassword']);
+Route::post('/forget-password/otp/verify', [OtpController::class, 'verifyOtpForForgetPassword']);
+Route::post('/forget-password/update', [OtpController::class, 'updatePasswordAfterForget']);

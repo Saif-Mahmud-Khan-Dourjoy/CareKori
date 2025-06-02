@@ -64,7 +64,7 @@ class RegisterController extends Controller
 
             return response()->json([
                 'message' => 'Registration successful',
-                'token' => $user->createToken('carekori-token')->plainTextToken,
+                // 'token' => $user->createToken('carekori-token')->plainTextToken,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -95,13 +95,29 @@ class RegisterController extends Controller
 
     private function createCustomerProfile(User $user, Request $request)
     {
-        $request->validate([
+        $validated =$request->validate([
             'gender' => 'required|in:male,female,other',
             'dob' => 'required',
             'district' => 'required|string',
             'sub_district' => 'required|string',
             'union_name' => 'required|string',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/customer'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/customer/' . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
 
         $user->customerProfile()->create([
             'gender' => $request->gender,
@@ -109,6 +125,7 @@ class RegisterController extends Controller
             'district' => $request->district,
             'sub_district' => $request->sub_district,
             'union_name' => $request->union_name,
+            'avatar' => $validated['avatar'] ?? null, // Store the avatar URL
         ]);
 
         $user->wallet()->create([
@@ -142,7 +159,26 @@ class RegisterController extends Controller
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
             'payment_account' => 'nullable|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+       
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/doctor'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/doctor/' . $imageName);  
+
+           
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
+     
+        
 
         // Using null coalescing operator to handle nullable fields
         $bio = $validated['bio'] ?? null;
@@ -157,6 +193,7 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
+        $avatar = $validated['avatar'] ?? null; 
 
         // Create the doctor profile for the user
         $user->doctorProfile()->create([
@@ -175,6 +212,7 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
+            'avatar' => $avatar, // Store the avatar URL
         ]);
     }
 
@@ -201,7 +239,23 @@ class RegisterController extends Controller
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
             'payment_account' => 'nullable|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/lawyer'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/lawyer/' . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
 
         // Using null coalescing operator for nullable fields
         $bio = $validated['bio'] ?? null;
@@ -217,7 +271,10 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
-        // Validate the payment type and account if provided
+        $avatar = $validated['avatar'] ?? null; // Store the avatar URL
+
+    
+
 
         // Create the lawyer profile for the user
         $user->lawyerProfile()->create([
@@ -236,6 +293,7 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
+            'avatar' => $avatar, // Store the avatar URL
         ]);
     }
 
@@ -262,7 +320,24 @@ class RegisterController extends Controller
             'other_data' => 'nullable',  // Optional other data field (JSON or text)
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
             'payment_account' => 'nullable|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/common_provider'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/common_provider/' . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
 
         // Use null coalescing to handle missing fields
         $bio = $validated['bio'] ?? null;
@@ -277,6 +352,7 @@ class RegisterController extends Controller
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
         $unique_identification_no = $validated['unique_identification_no'];
+        $avatar = $validated['avatar'] ?? null; // Store the avatar URL
 
         // Process `other_data` to ensure it's in JSON format
         $otherData = $validated['other_data'] ?? null;
@@ -308,6 +384,7 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
+            'avatar' => $avatar, // Store the avatar URL
         ]);
 
         // Create the unique identification record for the user
