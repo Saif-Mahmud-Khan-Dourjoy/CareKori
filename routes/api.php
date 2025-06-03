@@ -27,6 +27,7 @@ use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
+use App\Http\Controllers\Api\SslCommerzController;
 use App\Http\Controllers\API\UnAuthenticatedController;
 
 /*
@@ -40,10 +41,25 @@ use App\Http\Controllers\API\UnAuthenticatedController;
 |
 */
 
+Route::prefix('sslcommerz')->group(function () {
+    Route::post('/initiate-payment', [SslCommerzController::class, 'initiatePayment']);
+    Route::post('/refund', [SslCommerzController::class, 'refund']);
+
+    Route::post('/success', [SslCommerzController::class, 'success'])->name('api.sslcommerz.success');
+    Route::post('/fail', [SslCommerzController::class, 'fail'])->name('api.sslcommerz.fail');
+    Route::post('/cancel', [SslCommerzController::class, 'cancel'])->name('api.sslcommerz.cancel');
+    Route::post('/ipn', [SslCommerzController::class, 'ipn'])->name('api.sslcommerz.ipn');
+});
+
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/refresh-token', [LoginController::class, 'refreshToken']);
     Route::get('/check-token', [LoginController::class, 'checkToken']);
+
+
+    
+
+    
 });
 
 Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function () {
