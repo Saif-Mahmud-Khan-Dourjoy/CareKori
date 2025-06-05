@@ -377,7 +377,60 @@ class AppointmentController extends Controller
         // Get upcoming appointments
         $appointments = Appointment::where('customer_id', $user->id)
             ->where('status', 'confirmed')
-            ->where('appointment_time', '>', now())
+            ->where('appointment_time', '>=', now())
+            ->with('provider.role') // Load provider and their role
+            ->orderBy('appointment_time', 'asc')
+            ->get();
+
+        // Load role-specific profiles for each provider
+        foreach ($appointments as $appointment) {
+            $provider = $appointment->provider;
+
+            if (!$provider || !$provider->role) {
+                continue;
+            }
+
+            $roleName = strtolower($provider->role->name);
+
+            if ($roleName === 'doctor') {
+                $provider->load([
+                    'doctorProfile',
+                    'doctorProfile.doctorType',
+                    'doctorProfile.doctorSpeciality',
+                    'doctorProfile.doctorTitle'
+                ]);
+            } elseif ($roleName === 'lawyer') {
+                $provider->load([
+                    'lawyerProfile',
+                    'lawyerProfile.lawyerSpeciality',
+                    'lawyerProfile.lawyerTitle'
+                ]);
+            } else {
+                $provider->load([
+                    'commonProfile',
+                    'commonProfile.uniqueIdentification',
+                    'commonProfile.commonSpeciality'
+                ]);
+            }
+        }
+
+        return response()->json(['appointments' => $appointments]);
+    }
+
+    public function historyAppointmentsForUser($uniqueUserId)
+    {
+
+        // Fetch user by unique_user_id
+        $user = User::findByUniqueUserId($uniqueUserId);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Get upcoming appointments
+        $appointments = Appointment::where('customer_id', $user->id)
+            ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
+            ->where('appointment_time', '<', now())
             ->with('provider.role') // Load provider and their role
             ->orderBy('appointment_time', 'asc')
             ->get();
@@ -444,7 +497,7 @@ class AppointmentController extends Controller
         // Get upcoming appointments
         $appointments = Appointment::where('provider_id', $provider->id)
             ->where('status', 'confirmed')
-            ->where('appointment_time', '>', now())
+            ->where('appointment_time', '>=', now())
             ->with('customer.customerProfile') // Load provider and their role
             ->orderBy('appointment_time', 'asc')
             ->get();
@@ -456,7 +509,25 @@ class AppointmentController extends Controller
         return response()->json(['appointments' => $appointments]);
     }
 
+    public function historyAppointmentsForProvider($uniqueUserId)
+    {
+        // Fetch provider by unique_user_id
+        $provider = User::findByUniqueUserId($uniqueUserId);
 
+        if (!$provider) {
+            return response()->json(['error' => 'Provider not found'], 404);
+        }
+
+        // Get upcoming appointments
+        $appointments = Appointment::where('provider_id', $provider->id)
+            ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
+            ->where('appointment_time', '<', now())
+            ->with('customer.customerProfile') // Load provider and their role
+            ->orderBy('appointment_time', 'asc')
+            ->get();
+
+        return response()->json(['appointments' => $appointments]);
+    }
 
     // public function updateAppointment(Request $request, $appointmentId)
     // {

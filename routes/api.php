@@ -63,6 +63,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
         Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
+        Route::get('/appointments/user/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForUser']);
+
 
 
 
@@ -126,6 +128,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         Route::get('/appointments/provider/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForProvider']);
+        Route::get('/appointments/provider/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForProvider']);
         // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
         // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);

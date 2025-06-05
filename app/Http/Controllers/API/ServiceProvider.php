@@ -16,7 +16,8 @@ class ServiceProvider extends Controller
 {
     public function getServiceProvider()
     {
-        $serviceProvider = Role::whereNotIn('name', ['super admin', 'moderator', 'customer'])->get();
+        $serviceProvider = Role::whereNotIn('name', ['super admin', 'moderator', 'customer'])->withCount('users')->get();
+
         return response()->json([
             'data' => $serviceProvider,
             'message' => 'Service Provider fetched successfully',
@@ -56,16 +57,17 @@ class ServiceProvider extends Controller
         ], 200);
     }
 
-    public function serviceProviderListBySpeciality($specialityId, $roleId){
-        $role= Role::find($roleId);
+    public function serviceProviderListBySpeciality($specialityId, $roleId)
+    {
+        $role = Role::find($roleId);
         switch (Str::lower($role->name)) {
             case 'doctor':
-                $serviceProvider = User::where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
+                $serviceProvider = User::with(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle'])->where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
                     $query->where('doctor_speciality_id', $specialityId);
                 })->get();
                 break;
             case 'lawyer':
-                $serviceProvider = User::where('role_id', $roleId)->whereHas('lawyerProfile', function ($query) use ($specialityId) {
+                $serviceProvider = User::with(['lawyerProfile', 'lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality'])->where('role_id', $roleId)->whereHas('lawyerProfile', function ($query) use ($specialityId) {
                     $query->where('lawyer_speciality_id', $specialityId);
                 })->get();
                 break;
@@ -74,7 +76,7 @@ class ServiceProvider extends Controller
                     ->whereHas('commonProfile', function ($query) use ($specialityId) {
                         $query->where('common_speciality_id', $specialityId);
                     })
-                    ->with(['commonProfile.uniqueIdentification']) // Eager load related data
+                    ->with(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality']) // Eager load related data
                     ->get();
                 break;
         }
@@ -87,6 +89,7 @@ class ServiceProvider extends Controller
         }
         return response()->json([
             'data' => $serviceProvider,
+            'count' => count($serviceProvider),
             'message' => 'Service Provider list fetched successfully',
             'status' => true,
             'code' => 200
