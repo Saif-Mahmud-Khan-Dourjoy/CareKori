@@ -22,4 +22,8 @@ class LawyerProfile extends Model
     {
         return $this->belongsTo(LawyerSpeciality::class);
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

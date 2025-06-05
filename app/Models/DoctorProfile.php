@@ -25,4 +25,8 @@ class DoctorProfile extends Model
     {
         return $this->belongsTo(DoctorTitle::class);
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

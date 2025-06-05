@@ -26,9 +26,43 @@ class ServiceProvider extends Controller
         ], 200);
     }
 
+    // public function serviceProviderSpeciality($roleId)
+    // {
+    //     $serviceProvider = Role::find($roleId);
+    //     if (!$serviceProvider) {
+    //         return response()->json([
+    //             'message' => 'Service Provider not found',
+    //             'status' => false,
+    //             'code' => 404
+    //         ], 404);
+    //     }
+    //     switch ($serviceProvider->name) {
+    //         case 'doctor':
+    //             $speciality = DoctorSpeciality::all();
+    //             break;
+    //         case 'lawyer':
+    //             $speciality = LawyerSpeciality::all();
+    //             break;
+    //         default:
+    //             $speciality = CommonProviderSpeciality::where('category_id', $roleId)->get();
+    //             break;
+    //     }
+
+    //     return response()->json([
+    //         'data' => $speciality,
+    //         'roleId' => $roleId,
+    //         'message' => 'Service Provider speciality fetched successfully',
+    //         'status' => true,
+    //         'code' => 200
+    //     ], 200);
+    // }
+
+
+
     public function serviceProviderSpeciality($roleId)
     {
         $serviceProvider = Role::find($roleId);
+
         if (!$serviceProvider) {
             return response()->json([
                 'message' => 'Service Provider not found',
@@ -36,15 +70,33 @@ class ServiceProvider extends Controller
                 'code' => 404
             ], 404);
         }
+
         switch ($serviceProvider->name) {
-            case 'doctor':
-                $speciality = DoctorSpeciality::all();
+        case 'doctor':
+                // Fetch specialities with user count
+                $speciality = DoctorSpeciality::withCount(['doctorProfiles as users_count' => function ($query) use ($roleId) {
+                    $query->whereHas('user', function ($q) use ($roleId) {
+                        $q->where('role_id', $roleId);
+                    });
+                }])->get();
                 break;
+
             case 'lawyer':
-                $speciality = LawyerSpeciality::all();
+                $speciality = LawyerSpeciality::withCount(['lawyerProfiles as users_count' => function ($query) use ($roleId) {
+                    $query->whereHas('user', function ($q) use ($roleId) {
+                        $q->where('role_id', $roleId);
+                    });
+                }])->get();
                 break;
+
             default:
-                $speciality = CommonProviderSpeciality::where('category_id', $roleId)->get();
+                $speciality = CommonProviderSpeciality::withCount(['commonProfiles as users_count' => function ($query) use ($roleId) {
+                    $query->whereHas('user', function ($q) use ($roleId) {
+                        $q->where('role_id', $roleId);
+                    });
+                }])
+                    ->where('category_id', $roleId)
+                    ->get();
                 break;
         }
 
@@ -56,6 +108,7 @@ class ServiceProvider extends Controller
             'code' => 200
         ], 200);
     }
+
 
     public function serviceProviderListBySpeciality($specialityId, $roleId)
     {
