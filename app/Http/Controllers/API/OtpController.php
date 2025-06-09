@@ -13,14 +13,18 @@ class OtpController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate(['phone' => 'required|regex:/^01[3-9][0-9]{8}$/']);
-        $code = 1234;//rand(1000, 9999);
+        $code = 1234; // Fixed OTP code
+
+        // Set timezone to Dhaka
+        $now = Carbon::now('Asia/Dhaka');
+        $expiresAt = $now->copy()->addMinutes(5);
 
         OtpCode::updateOrCreate(
             ['phone' => $request->phone],
-            ['code' => $code, 'expires_at' => now()->addMinutes(5), 'is_verified' => false]
+            ['code' => $code, 'expires_at' => $expiresAt, 'is_verified' => false]
         );
 
-        return response()->json(['message' => 'OTP sent', 'otp' => $code,'expires_at' => now()->addMinutes(5)]); // Simulated
+        return response()->json(['message' => 'OTP sent', 'otp' => $code,'expires_at' => $expiresAt]); // Simulated
     }
 
     // public function sendOtp(Request $request)
@@ -29,14 +33,14 @@ class OtpController extends Controller
     //         'phone' => 'required|regex:/^01[3-9][0-9]{8}$/',
     //     ]);
 
-    //     $otpCode = rand(1000, 9999);
+    //     $otpCode = 1234; // Fixed OTP code
 
 
     //     OtpCode::updateOrCreate(
     //         ['phone' => $request->phone],
     //         [
     //             'code' => $otpCode,
-    //             'expires_at' => Carbon::now()->addMinutes(5),
+    //             'expires_at' => Carbon::now('Asia/Dhaka')->addMinutes(5),
     //             'is_verified' => false,
     //         ]
     //     );
@@ -59,9 +63,11 @@ class OtpController extends Controller
     {
         $request->validate(['phone' => 'required', 'code' => 'required']);
 
+        $now = Carbon::now('Asia/Dhaka');
+
         $otp = OtpCode::where('phone', $request->phone)
             ->where('code', $request->code)
-            ->where('expires_at', '>', now())
+            ->where('expires_at', '>', $now)
             ->first();
 
         if (!$otp) return response()->json(['message' => 'Invalid or expired OTP'], 422);
@@ -146,7 +152,7 @@ class OtpController extends Controller
         // If an expired OTP exists, delete it and generate a new one
         if ($otpRecord) {
             // Check if the OTP is expired
-            if ($otpRecord->expires_at < Carbon::now()) {
+            if ($otpRecord->expires_at < Carbon::now('Asia/Dhaka')) {
                 // Delete the expired OTP record
                 $otpRecord->delete();
             } else {
@@ -167,14 +173,14 @@ class OtpController extends Controller
         }
 
         // If no valid OTP or expired OTP exists, generate a new OTP
-        $otp = rand(1000, 9999); // Generate a 4-digit OTP
+        $otp = 1234; // Fixed OTP code
 
         // Store the new OTP code
         OtpCode::updateOrCreate(
             ['phone' => $phone],
             [
                 'code' => $otp,
-                'expires_at' => Carbon::now()->addMinutes(5), // Set expiration time
+                'expires_at' => Carbon::now('Asia/Dhaka')->addMinutes(5), // Set expiration time
                 'is_verified' => false, // Mark as unverified
             ]
         );
@@ -211,7 +217,7 @@ class OtpController extends Controller
         $phone = $validated['new_phone'];
 
         // Generate OTP
-        $otp = rand(1000, 9999); // 4-digit OTP
+        $otp = 1234; // Fixed OTP code
 
         // Store OTP in database
         OtpCode::updateOrCreate(
@@ -219,7 +225,7 @@ class OtpController extends Controller
             [
                 'code' => $otp,
                 'is_verified' => false,
-                'expires_at' => Carbon::now()->addMinutes(5),
+                'expires_at' => Carbon::now('Asia/Dhaka')->addMinutes(5),
             ]
         );
 
@@ -249,7 +255,7 @@ class OtpController extends Controller
     {
         $validated = $request->validate([
             'new_phone' => 'required|regex:/^01[3-9][0-9]{8}$/',  // Ensure valid phone number format
-            'otp' => 'required|digits:4',  // OTP should be 6 digits
+            'otp' => 'required|digits:4',  // OTP should be 4 digits
         ]);
 
         $phone = $validated['new_phone'];
@@ -259,7 +265,7 @@ class OtpController extends Controller
         $otpRecord = OtpCode::where('phone', $phone)
             ->where('code', $otp)
             ->where('is_verified', false)
-            ->where('expires_at', '>', Carbon::now())
+            ->where('expires_at', '>', Carbon::now('Asia/Dhaka'))
             ->first();
 
         if (!$otpRecord) {
@@ -285,9 +291,9 @@ class OtpController extends Controller
     public function sendOtpForForgetPassword(Request $request)
     {
         $request->validate(['phone' => 'required|regex:/^01[3-9][0-9]{8}$/']);
-        $code = rand(1000, 9999);
+        $code = 1234; // Fixed OTP code
 
-        // Check if the user exists with the provided phone numbe
+        // Check if the user exists with the provided phone number
         $user = User::where('phone', $request->phone)->first();
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
@@ -298,13 +304,13 @@ class OtpController extends Controller
         $otpRecord = OtpCode::where('phone', $request->phone)
             ->where('is_verified', false)
             ->first();
-        if ($otpRecord && $otpRecord->expires_at > now()) {
+        if ($otpRecord && $otpRecord->expires_at > Carbon::now('Asia/Dhaka')) {
             return response()->json(['message' => 'OTP already sent and valid'], 200);
         }
 
         OtpCode::updateOrCreate(
             ['phone' => $request->phone],
-            ['code' => $code, 'expires_at' => now()->addMinutes(5), 'is_verified' => false]
+            ['code' => $code, 'expires_at' => Carbon::now('Asia/Dhaka')->addMinutes(5), 'is_verified' => false]
         );
 
         // $statusMessages = $this->sendToPhone($request, $code);
@@ -322,25 +328,28 @@ class OtpController extends Controller
 
         return response()->json(['message' => 'OTP sent for password reset', 'otp' => $code]); // Simulated
     }
-    public function verifyOtpForForgetPassword(Request $request)
-    {
-        $request->validate(['phone' => 'required', 'code' => 'required']);
-
-        $otp = OtpCode::where('phone', $request->phone)
-            ->where('code', $request->code)
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (!$otp) return response()->json(['message' => 'Invalid or expired OTP'], 422);
-
-        $otp->update(['is_verified' => true]);
-        return response()->json(['message' => 'OTP verified for password reset']);
+   public function verifyOtpForForgetPassword(Request $request)
+{
+    $request->validate(['phone' => 'required', 'code' => 'required']);
+    
+    $otp = OtpCode::where('phone', $request->phone)
+        ->where('code', $request->code)
+        ->where('expires_at', '>', Carbon::now('Asia/Dhaka')) // Compare in UTC
+        ->first();
+    
+    if (!$otp) {
+        return response()->json(['message' => 'Invalid or expired OTP'], 422);
     }
+    
+    $otp->update(['is_verified' => true]);
+    return response()->json(['message' => 'OTP verified for password reset']);
+}
     public function updatePasswordAfterForget(Request $request)
     {
         $request->validate([
             'phone' => 'required|regex:/^01[3-9][0-9]{8}$/',
-            'new_password' => 'required|min:6|confirmed',
+            'code' => 'required|min:4',
+            'new_password' => 'required|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/|confirmed',
         ]);
 
         $user = User::where('phone', $request->phone)->first();
@@ -351,6 +360,7 @@ class OtpController extends Controller
         // Check if the OTP is verified
         $otp = OtpCode::where('phone', $request->phone)
             ->where('is_verified', true)
+            ->where('code', $request->code)
             ->first();
 
         if (!$otp) {
