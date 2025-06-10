@@ -52,21 +52,38 @@ class CustomerProfile extends Controller
         return response()->json(['message' => 'Profile updated successfully.']);
     }
 
-   
 
+
+
+    // public function show(Request $request)
+    // {
+    //     // Retrieve the authenticated user
+    //     $user = $request->user();
+
+    //     // Load the associated customer profile
+    //     $user->load(['customerProfile', 'languageState', 'wallet']);
+
+    //     // Return the user data along with the customer profile
+    //     return response()->json([
+    //         'user' => $user,
+    //         'customer_profile' => $user->customerProfile,
+    //     ]);
+    // }
 
     public function show(Request $request)
     {
-        // Retrieve the authenticated user
         $user = $request->user();
-
-        // Load the associated customer profile
         $user->load(['customerProfile', 'languageState', 'wallet']);
 
-        // Return the user data along with the customer profile
+        // Call the controller method
+        $response = (new ServiceProvider)->getServiceProvider();
+
+        // Decode the response to get only the 'data'
+        $responseData = $response->getData(true); // true = return as array
+
         return response()->json([
             'user' => $user,
-            'customer_profile' => $user->customerProfile,
+            'services' => $responseData['data'],
         ]);
     }
 
