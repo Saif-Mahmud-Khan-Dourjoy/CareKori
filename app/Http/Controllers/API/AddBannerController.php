@@ -10,6 +10,13 @@ class AddBannerController extends Controller
 {
     public function store(Request $request)
     {
+          if (!auth()->check() || auth()->user()->role->name !== 'super admin') {
+            return response()->json([
+                'message' => 'Unauthorized action. You are not admin',
+                'status' => false,
+                'code' => 403
+            ], 403);
+        }
         $validated = $request->validate([
             'add_image' => 'required|mimes:jpg,png,jpeg|max:2048',
             'add_for' => 'nullable|string',
