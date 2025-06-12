@@ -100,7 +100,7 @@ class RegisterController extends Controller
             'dob' => 'required',
             'district' => 'required|string',
             'sub_district' => 'required|string',
-            'union_name' => 'required|string',
+            //'union_name' => 'required|string',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
 
@@ -124,7 +124,7 @@ class RegisterController extends Controller
             'dob' => $request->dob,
             'district' => $request->district,
             'sub_district' => $request->sub_district,
-            'union_name' => $request->union_name,
+            'union_name' => $request->union_name ?? 'empty',//$request->union_name,
             'avatar' => $validated['avatar'] ?? null, // Store the avatar URL
         ]);
 
