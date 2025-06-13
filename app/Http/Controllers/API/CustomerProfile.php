@@ -26,6 +26,8 @@ class CustomerProfile extends Controller
             'district' => 'nullable|string|max:255',
             'sub_district' => 'nullable|string|max:255',
             'union_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:500',
+
         ]);
 
         // Update the user's attributes
