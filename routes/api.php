@@ -273,7 +273,12 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
     Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
     Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
-
+//
+ // For category wised add banner 
+      Route::post('category/banner/store/{id}', [AddBannerController::class, 'store']);  // Store a new banner
+    Route::get('category/banner/latest/{id}', [AddBannerController::class, 'getLatest']);  // Get the latest banner
+    Route::get('category/banner/all/{id}', [AddBannerController::class, 'getAll']);  // Get all banners
+//
 
     // Common Provider Speciality
     Route::get('/common-provider-specialities/{roleId}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialitiesByRoleId']);
