@@ -28,12 +28,12 @@ class Handler extends ExceptionHandler
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'The uploaded file exceeds the 2 MB size limit.',
+                    'message' => 'Max file limit 2 MB',
                 ], Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
             }
 
             return redirect()->back()
-                ->withErrors(['avatar' => 'The uploaded file exceeds the 2 MB size limit.'])
+                ->withErrors(['avatar' => 'Max file limit 2 MB'])
                 ->withInput();
         }
 
