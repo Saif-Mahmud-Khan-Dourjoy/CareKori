@@ -1,0 +1,156 @@
+[
+  {
+    "endpoint": "http://127.0.0.1:8000/api/otp/send",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "phone": "01675332900"
+    }
+  },
+
+  {
+    "endpoint": "http://127.0.0.1:8000/api/otp/verify",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "phone": "01675332900",
+      "code": "1234"
+    }
+  },
+
+  {
+    "endpoint": "http://127.0.0.1:8000/api/login",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "phone": "01675332900",
+      "password": "56789"
+    }
+  },
+  {
+    "endpoint": "http://127.0.0.1:8000/api/register",
+    "register": "Customer",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Customer 1",
+      "phone": "01675555555",
+      "role": 4,
+      "email": "abd@gmail.com",
+      "password": "customer1@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "sub_district": "Mirpur",
+      "union_name": "pallabi"
+    }
+  },
+  {
+    "endpoint": "http://127.0.0.1:8000/api/register",
+    "register": "Doctor",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Doctor 1",
+      "phone": "01675555555",
+      "role": 5,
+      "email": "abd@gmail.com",
+      "password": "doctor@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "bio": "Doctor Bio",
+      "pricing": "1000",
+
+      "thana": "Pallabi",
+      "identification_no": "63453531",
+
+      "doctor_type_id": 2,
+      "doctor_speciality_id": 2,
+      "doctor_title_id": 2,
+      "registration_no": "12232323"
+    }
+  },
+  {
+    "endpoint": "http://127.0.0.1:8000/api/register",
+    "register": "Lawyer",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Lawyer 1",
+      "phone": "01675555555",
+      "role": 6,
+      "email": "abd@gmail.com",
+      "password": "lawyer@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "bio": "Doctor Bio",
+      "pricing": "1000",
+      "practice_area": "Mirpur",
+      "thana": "Pallabi",
+      "identification_no": "63453531",
+      "bar_registration_no": "74367346",
+      "lawyer_title_id": 1
+    }
+  },
+  {
+    "endpoint": "http://127.0.0.1:8000/api/register",
+    "register": "Other Provider",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    "body": {
+      "name": "Engineer 1",
+      "phone": "01675555555",
+      "role": 7,
+      "email": "abd@gmail.com",
+      "password": "engineer@123",
+      "gender": "male",
+      "dob": "2025-05-06",
+      "district": "Dhaka",
+      "bio": "Doctor Bio",
+      "pricing": "1000",
+      "thana": "Pallabi",
+      "identification_no": "63453531",
+      "unique_identification_no": "111111111111",
+      "other_data": { "address": "Dhaka", "age": 20 }
+    }
+  },
+  {
+    "endpoint": "http://127.0.0.1:8000/api/all-roles-service-provider-customer",
+
+    "method": "GET",
+    "headers": {
+      "accept": "application/json"
+    }
+  },
+  {
+    "endpoint": "http://127.0.0.1:8000/api/get-identification-placeholder/{roleId}",
+
+    "method": "GET",
+    "headers": {
+      "accept": "application/json"
+    }
+  }
+]
