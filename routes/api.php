@@ -218,6 +218,23 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+
+        //ADD BANNER
+
+        Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
+        Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
+        Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
+
+        // Add banner Category
+        Route::post('/banner-categories', [AddBannerController::class, 'storeCat']); // add
+        Route::put('/banner-categories/{id}', [AddBannerController::class, 'updateCat']); // update
+        Route::get('/banner-categories/{id}', [AddBannerController::class, 'showCat']); // view
+        Route::delete('/banner-categories/{id}', [AddBannerController::class, 'destroyCat']); // delete
+        //
+        // For category wised add banner 
+        Route::post('category/banner/store/{categoryId}', [AddBannerController::class, 'storeByCategory']);  // Store a new banner
+        Route::get('category/banner/latest/{categoryId}', [AddBannerController::class, 'getLatestByCategory']);  // Get the latest banner
+        Route::get('category/banner/all/{categoryId}', [AddBannerController::class, 'getAllByCategory']);  // Get all banners
     });
 
 
@@ -268,16 +285,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::put('/reviews/{id}/status', [ReviewController::class, 'updateStatus']);
     Route::get('/service-providers/{id}/reviews', [ReviewController::class, 'getApprovedReviews']);
 
-    //ADD BANNER
-
-    Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
-    Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
-    Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
-//
- // For category wised add banner 
-      Route::post('category/banner/store/{id}', [AddBannerController::class, 'store']);  // Store a new banner
-    Route::get('category/banner/latest/{id}', [AddBannerController::class, 'getLatest']);  // Get the latest banner
-    Route::get('category/banner/all/{id}', [AddBannerController::class, 'getAll']);  // Get all banners
+    
 //
 
     // Common Provider Speciality

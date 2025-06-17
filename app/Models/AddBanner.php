@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class AddBanner extends Model
 {
     use HasFactory;
-    protected $fillable = [
-        'add_image',
-        'add_for',
-        'add_type'
-    ];
+    protected $fillable = ['add_image', 'add_for', 'add_type', 'category_id'];
+
+    public function category()
+    {
+        return $this->belongsTo(BannerCategory::class, 'category_id');
+    }
 }
