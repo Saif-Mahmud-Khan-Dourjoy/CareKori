@@ -297,7 +297,11 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
 
-    // You can add post/put/delete routes too
+
+    Route::get('/switch-user', [ServiceProvider::class, 'switchUser']);
+    // Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
