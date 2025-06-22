@@ -222,14 +222,11 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         //ADD BANNER
 
         Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
-        Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
-        Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
 
 
         // For role wised add banner 
         Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
-        Route::get('role/banner/latest/{roleId}', [AddBannerController::class, 'getLatestByRole']);  // Get the latest banner
-        Route::get('role/banner/all/{roleId}', [AddBannerController::class, 'getAllByRole']);  // Get all banners
+
     });
 
 
@@ -322,3 +319,9 @@ Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::
 Route::post('/forget-password/otp/send', [OtpController::class, 'sendOtpForForgetPassword']);
 Route::post('/forget-password/otp/verify', [OtpController::class, 'verifyOtpForForgetPassword']);
 Route::post('/forget-password/update', [OtpController::class, 'updatePasswordAfterForget']);
+
+Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
+Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
+
+Route::get('role/banner/latest/{roleId}', [AddBannerController::class, 'getLatestByRole']);  // Get the latest banner
+Route::get('role/banner/all/{roleId}', [AddBannerController::class, 'getAllByRole']);  // Get all banners
