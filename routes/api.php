@@ -300,6 +300,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
     Route::get('/switch-user', [ServiceProvider::class, 'switchUser']);
     // Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+    
+    Route::post('update-password',[LoginController::class,'updatePassword']);
 
 
 });

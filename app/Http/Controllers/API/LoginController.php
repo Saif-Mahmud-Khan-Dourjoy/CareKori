@@ -244,5 +244,26 @@ class LoginController extends Controller
 
         return response()->json(['valid' => true, 'message' => 'Token is valid']);
     }
+
+
+    public function updatePassword(Request $request){
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // Check current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Current password does not match.'], 400);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'Password updated successfully.']);
+    }
     
 }
