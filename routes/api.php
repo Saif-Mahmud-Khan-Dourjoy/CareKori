@@ -225,16 +225,11 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
         Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
 
-        // Add banner Category
-        Route::post('/banner-categories', [AddBannerController::class, 'storeCat']); // add
-        Route::put('/banner-categories/{id}', [AddBannerController::class, 'updateCat']); // update
-        Route::get('/banner-categories/{id}', [AddBannerController::class, 'showCat']); // view
-        Route::delete('/banner-categories/{id}', [AddBannerController::class, 'destroyCat']); // delete
-        //
-        // For category wised add banner 
-        Route::post('category/banner/store/{categoryId}', [AddBannerController::class, 'storeByCategory']);  // Store a new banner
-        Route::get('category/banner/latest/{categoryId}', [AddBannerController::class, 'getLatestByCategory']);  // Get the latest banner
-        Route::get('category/banner/all/{categoryId}', [AddBannerController::class, 'getAllByCategory']);  // Get all banners
+
+        // For role wised add banner 
+        Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
+        Route::get('role/banner/latest/{roleId}', [AddBannerController::class, 'getLatestByRole']);  // Get the latest banner
+        Route::get('role/banner/all/{roleId}', [AddBannerController::class, 'getAllByRole']);  // Get all banners
     });
 
 
@@ -285,8 +280,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::put('/reviews/{id}/status', [ReviewController::class, 'updateStatus']);
     Route::get('/service-providers/{id}/reviews', [ReviewController::class, 'getApprovedReviews']);
 
-    
-//
+
+    //
 
     // Common Provider Speciality
     Route::get('/common-provider-specialities/{roleId}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialitiesByRoleId']);
@@ -300,10 +295,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
     Route::get('/switch-user', [ServiceProvider::class, 'switchUser']);
     // Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
-    
-    Route::post('update-password',[LoginController::class,'updatePassword']);
 
-
+    Route::post('update-password', [LoginController::class, 'updatePassword']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);

@@ -11,7 +11,7 @@ class AddBannerController extends Controller
 {
     public function store(Request $request)
     {
-         
+
         $validated = $request->validate([
             'add_image' => 'required|mimes:jpg,png,jpeg|max:2048',
             'add_for' => 'nullable|string',
@@ -71,7 +71,7 @@ class AddBannerController extends Controller
 
 
 
-    public function storeByCategory(Request $request, $categoryId)
+    public function storeByRole(Request $request, $roleId)
     {
         $validated = $request->validate([
             'add_image' => 'required|mimes:jpg,png,jpeg|max:2048',
@@ -91,80 +91,31 @@ class AddBannerController extends Controller
             'add_image' => $addUrl,
             'add_for' => $validated['add_for'] ?? null,
             'add_type' => $validated['add_type'] ?? null,
-            'category_id' => $categoryId,
+            'role_id' => $roleId,
         ]);
 
         return response()->json(['message' => 'Banner added successfully!', 'data' => $banner], 201);
     }
 
-    // 2️⃣. GET the Latest Banner for a specific Category
-    public function getLatestByCategory($categoryId)
+    // 2️⃣. GET the Latest Banner for a specific Role
+    public function getLatestByRole($roleId)
     {
-        $banner = AddBanner::with('category')->where('category_id', $categoryId)
+        $banner = AddBanner::with('role')->where('role_id', $roleId)
             ->latest()
             ->first();
 
         if ($banner) {
             return response()->json(['data' => $banner]);
         } else {
-            return response()->json(['message' => 'No banners found for this category'], 404);
+            return response()->json(['message' => 'No banners found for this role'], 404);
         }
     }
 
-    // 3️⃣. GET All Banners for a specific Category
-    public function getAllByCategory($categoryId)
+    // 3️⃣. GET All Banners for a specific Role
+    public function getAllByRole($roleId)
     {
-        $banners = AddBanner::with('category')->where('category_id', $categoryId)->get();
+        $banners = AddBanner::with('role')->where('role_id', $roleId)->get();
 
         return response()->json(['data' => $banners]);
-    }
-
-    // ADD
-    public function storeCat(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        $category = BannerCategory::create([
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
-        ]);
-
-        return response()->json(['message' => 'Category created successfully!', 'data' => $category], 201);
-    }
-
-    // UPDATE
-    public function updateCat(Request $request, $id)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        $category = BannerCategory::findOrFail($id);
-        $category->update([
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
-        ]);
-
-        return response()->json(['message' => 'Category updated successfully!', 'data' => $category]);
-    }
-
-    // VIEW
-    public function showCat($id)
-    {
-        $category = BannerCategory::findOrFail($id);
-        return response()->json(['data' => $category]);
-    }
-
-    // DELETE
-    public function destroyCat($id)
-    {
-        $category = BannerCategory::findOrFail($id);
-        $category->delete();
-
-        return response()->json(['message' => 'Category deleted successfully!']);
     }
 }

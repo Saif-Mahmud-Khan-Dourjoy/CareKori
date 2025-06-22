@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('add_banners', function (Blueprint $table) {
-            $table->foreignId('category_id')->nullable()
-                ->constrained('banner_categories')
-                ->cascadeOnDelete()
-                ->after('add_type');
+            $table->foreignId('role_id')->nullable()
+                ->constrained('roles') // assuming the table is named 'roles'
+                ->after('id')
+                ->cascadeOnDelete();
         });
     }
 
@@ -25,8 +25,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('add_banners', function (Blueprint $table) {
-            $table->dropForeign(['category_id']); // drops the ForeignKey first
-            $table->dropColumn('category_id'); // then drops the column
+            $table->dropForeign(['role_id']);
+            $table->dropColumn('role_id');
         });
     }
 };
