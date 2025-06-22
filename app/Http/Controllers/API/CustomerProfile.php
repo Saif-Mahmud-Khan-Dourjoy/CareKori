@@ -9,50 +9,50 @@ use Illuminate\Support\Facades\Hash;
 
 class CustomerProfile extends Controller
 {
-    public function update(Request $request)
-    {
-        $user = $request->user();
+    // public function update(Request $request)
+    // {
+    //     $user = $request->user();
 
 
 
 
-        // Validate the incoming request
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            // 'phone' => 'sometimes|required|regex:/^01[3-9][0-9]{8}$/',
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'gender' => 'nullable|in:male,female,other',
-            'dob' => 'nullable|date',
-            'district' => 'nullable|string|max:255',
-            'sub_district' => 'nullable|string|max:255',
-            'union_name' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:500',
+    //     // Validate the incoming request
+    //     $validated = $request->validate([
+    //         'name' => 'sometimes|required|string|max:255',
+    //         // 'phone' => 'sometimes|required|regex:/^01[3-9][0-9]{8}$/',
+    //         'email' => 'nullable|email|unique:users,email,' . $user->id,
+    //         'gender' => 'nullable|in:male,female,other',
+    //         'dob' => 'nullable|date',
+    //         'district' => 'nullable|string|max:255',
+    //         'sub_district' => 'nullable|string|max:255',
+    //         'union_name' => 'nullable|string|max:255',
+    //         'address' => 'nullable|string|max:500',
 
-        ]);
+    //     ]);
 
-        // Update the user's attributes
-        // if (isset($validated['phone'])) {
-        //     $user->phone = $validated['phone'];
-        // }
+    //     // Update the user's attributes
+    //     // if (isset($validated['phone'])) {
+    //     //     $user->phone = $validated['phone'];
+    //     // }
 
-        if (isset($validated['name'])) {
-            $user->name = $validated['name'];
-        }
+    //     if (isset($validated['name'])) {
+    //         $user->name = $validated['name'];
+    //     }
 
-        if (isset($validated['email'])) {
-            $user->email = $validated['email'];
-        }
+    //     if (isset($validated['email'])) {
+    //         $user->email = $validated['email'];
+    //     }
 
-        $user->save();
+    //     $user->save();
 
-        // Update or create the customer profile
-        $user->customerProfile()->updateOrCreate(
-            ['user_id' => $user->id],
-            $validated
-        );
+    //     // Update or create the customer profile
+    //     $user->customerProfile()->updateOrCreate(
+    //         ['user_id' => $user->id],
+    //         $validated
+    //     );
 
-        return response()->json(['message' => 'Profile updated successfully.']);
-    }
+    //     return response()->json(['message' => 'Profile updated successfully.']);
+    // }
 
 
 
@@ -72,6 +72,85 @@ class CustomerProfile extends Controller
     //     ]);
     // }
 
+
+
+
+
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        // Validate the incoming request data (excluding the avatar)
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'gender' => 'nullable|in:male,female,other',
+            'dob' => 'nullable|date',
+            'district' => 'nullable|string|max:255',
+            'sub_district' => 'nullable|string|max:255',
+            'union_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:500',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
+        ]);
+
+        // Check if an avatar is uploaded
+        if ($request->hasFile('avatar')) {
+
+            // Delete the previous avatar if it exists
+            if ($user->customerProfile->avatar) {
+                // Convert full URL to relative path
+                // $relativePath = str_replace(asset('') . '/', '', $user->customerProfile->avatar);
+                $relativePath = str_replace(
+                    asset(''),
+                    '',
+                    $user->customerProfile->avatar
+                );
+
+
+
+
+                // return response()->json($relativePath);
+
+                // Check if the file exists and delete it
+                if (File::exists(public_path($relativePath))) {
+
+                    File::delete(public_path($relativePath));
+                }
+            }
+
+            // Generate a unique file name for the new avatar
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            // Move the uploaded image to the 'public/images/customer' directory
+            $request->avatar->move(public_path('images/customer'), $imageName);
+
+            // Store the full URL of the uploaded image
+            $validated['avatar'] = asset('images/customer/' . $imageName); // Add avatar URL to the validated data
+        }
+
+        // Update user details
+        if (isset($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+
+        if (isset($validated['email'])) {
+            $user->email = $validated['email'];
+        }
+
+        $user->save();
+
+        // Update or create the customer profile, including the avatar URL if it's present
+        $user->customerProfile()->updateOrCreate(
+            ['user_id' => $user->id],
+            $validated
+        );
+
+        // Reload the user with the updated customer profile
+        $user->load('customerProfile');
+
+        // Return response
+        return response()->json(['message' => 'Profile updated successfully.', 'user' => $user]);
+    }
     public function show(Request $request)
     {
         $user = $request->user();
@@ -127,9 +206,13 @@ class CustomerProfile extends Controller
         $user = $request->user(); // Assuming user is authenticated
 
         // Delete the old avatar if it exists
-        if ($user->avatar) {
+        if ($user->customerProfile->avatar) {
             // Convert full URL to relative path
-            $relativePath = str_replace(asset('') . '/', '', $user->avatar);
+            $relativePath = str_replace(
+                asset(''),
+                '',
+                $user->customerProfile->avatar
+            );
 
             // Check if the file exists and delete it
             if (File::exists(public_path($relativePath))) {
