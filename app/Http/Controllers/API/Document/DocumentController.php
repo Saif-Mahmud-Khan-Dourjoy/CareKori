@@ -236,7 +236,12 @@ class DocumentController extends Controller
             ->values();
 
         // Fetch members and their appointments as provider
-        $members = User::with(['role', 'appointmentsAsProvider']) // eager load appointmentsAsProvider relationship
+        $members = User::with([
+            'role',
+            'appointmentsAsProvider' => function ($query) use ($customerId) {
+                $query->where('customer_id', $customerId);
+            }
+        ])
             ->whereIn('id', $memberIds)
             ->where('role_id', $roleId)
             ->get();
@@ -247,6 +252,8 @@ class DocumentController extends Controller
 
             // Add appointments as provider
             $member->appointments = $member->appointmentsAsProvider;
+
+            unset($member->appointmentsAsProvider);
 
             if ($roleName === 'doctor') {
                 $member->load(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle']);
