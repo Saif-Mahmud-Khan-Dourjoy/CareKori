@@ -79,6 +79,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
         Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
+        Route::get('/appointments/user/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForUser']);
+
 
 
 
@@ -142,6 +144,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         Route::get('/appointments/provider/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForProvider']);
+        Route::get('/appointments/provider/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForProvider']);
         // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
         // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
@@ -231,6 +234,15 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+
+        //ADD BANNER
+
+        Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
+
+
+        // For role wised add banner 
+        Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
+
     });
 
 
@@ -281,12 +293,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::put('/reviews/{id}/status', [ReviewController::class, 'updateStatus']);
     Route::get('/service-providers/{id}/reviews', [ReviewController::class, 'getApprovedReviews']);
 
-    //ADD BANNER
 
-    Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
-    Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
-    Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
-
+    //
 
     // Common Provider Speciality
     Route::get('/common-provider-specialities/{roleId}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialitiesByRoleId']);
@@ -297,7 +305,11 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
 
-    // You can add post/put/delete routes too
+
+    Route::get('/switch-user', [ServiceProvider::class, 'switchUser']);
+    // Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+    Route::post('update-password', [LoginController::class, 'updatePassword']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
@@ -323,3 +335,8 @@ Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::
 Route::post('/forget-password/otp/send', [OtpController::class, 'sendOtpForForgetPassword']);
 Route::post('/forget-password/otp/verify', [OtpController::class, 'verifyOtpForForgetPassword']);
 Route::post('/forget-password/update', [OtpController::class, 'updatePasswordAfterForget']);
+Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
+Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
+
+Route::get('role/banner/latest/{roleId}', [AddBannerController::class, 'getLatestByRole']);  // Get the latest banner
+Route::get('role/banner/all/{roleId}', [AddBannerController::class, 'getAllByRole']);  // Get all banners

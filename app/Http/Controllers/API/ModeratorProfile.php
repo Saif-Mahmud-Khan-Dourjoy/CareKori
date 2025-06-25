@@ -19,7 +19,7 @@ class ModeratorProfile extends Controller
             'email' => 'nullable|email|unique:users,email,' . $user->id,
             'gender' => 'nullable|in:male,female,other',
             'dob' => 'nullable|date',
-           
+
         ]);
 
         // Update the user's attributes
@@ -99,9 +99,13 @@ class ModeratorProfile extends Controller
         $user = $request->user(); // Assuming user is authenticated
 
         // Delete the old avatar if it exists
-        if ($user->avatar) {
+        if ($user->moderatorProfile->avatar) {
             // Convert full URL to relative path
-            $relativePath = str_replace(asset('') . '/', '', $user->avatar);
+            $relativePath = str_replace(
+                asset(''),
+                '',
+                $user->moderatorProfile->avatar
+            );
 
             // Check if the file exists and delete it
             if (File::exists(public_path($relativePath))) {

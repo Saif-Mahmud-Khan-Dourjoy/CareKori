@@ -181,31 +181,43 @@ class LoginController extends Controller
         ]);
     }
 
-    public function refreshToken(Request $request)
-    {
-        $user = $request->user();
+  public function refreshToken(Request $request)
+{
+    $user = $request->user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
-
-        // Revoke current token
-        $user->currentAccessToken()->delete();
-
-        // Issue new token
-        $tokenResult = $user->createToken('carekori-token');
-
-        $expirationMinutes = env('SANCTUM_TOKEN_EXPIRATION', 60);
-        $expiresAt = Carbon::now()->addMinutes($expirationMinutes);
-        
-    
-
-        return response()->json([
-            'access_token' => $tokenResult->plainTextToken,
-            'token_type' => 'Bearer',
-            'expires_at' => $expiresAt->toDateTimeString(),
-        ]);
+    if (!$user) {
+        return response()->json(['message' => 'Unauthenticated.'], 401);
     }
+
+    $token = $user->currentAccessToken();
+
+    if (!$token) {
+        return response()->json(['message' => 'No active token found.'], 401);
+    }
+
+    $expirationMinutes = env('SANCTUM_TOKEN_EXPIRATION', 60);
+    $expiresAt = Carbon::parse($token->created_at)->timezone('Asia/Dhaka')->addMinutes($expirationMinutes);
+
+    if ($expiresAt->isPast()) {
+        return response()->json([
+            'message' => 'Token expired. Please log in again.',
+            'expired_at' => $expiresAt->toDateTimeString(),
+        ], 401);
+    }
+
+    $token->delete();
+
+    $newToken = $user->createToken('carekori-token');
+    $newExpiresAt = Carbon::now('Asia/Dhaka')->addMinutes($expirationMinutes);
+
+    return response()->json([
+        'token' => $newToken->plainTextToken,
+        'token_type' => 'Bearer',
+        'expires_at' => $newExpiresAt->toDateTimeString(),
+        'message' => 'Token refreshed successfully.',
+    ]);
+}
+
 
 
     public function checkToken(Request $request)
@@ -231,6 +243,27 @@ class LoginController extends Controller
         }
 
         return response()->json(['valid' => true, 'message' => 'Token is valid']);
+    }
+
+
+    public function updatePassword(Request $request){
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // Check current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Current password does not match.'], 400);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'Password updated successfully.']);
     }
     
 }

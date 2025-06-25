@@ -15,7 +15,7 @@ class DocumentController extends Controller
     public function upload(Request $request)
     {
 
-        
+
         // Validate the incoming request
         $validated = $request->validate([
             'document' => 'required|mimes:pdf,jpg,png,docx|max:2048', // Validate file type and size
@@ -62,7 +62,7 @@ class DocumentController extends Controller
     public function uploadMultiple(Request $request)
     {
 
-     
+
         // Validate the incoming request for multiple files and related fields
         $validated = $request->validate([
             'document' => 'required|array',
@@ -120,7 +120,7 @@ class DocumentController extends Controller
 
         $user = User::findByUniqueUserId($uniqueId);
 
-            // Get all verification documents for the user
+        // Get all verification documents for the user
         $documents = Document::where('user_id', $user->id)
             ->where('type', 'verification')
             ->get();
@@ -153,7 +153,7 @@ class DocumentController extends Controller
         $customer = User::findByUniqueUserId($customerUniqueId);
         $provider = User::findByUniqueUserId($providerUniqueId);
 
-    
+
         $documents = PrivateDocument::with('document')->where('created_for', $customer->id)
             ->where('created_by', $provider->id)
             ->get();
@@ -174,15 +174,59 @@ class DocumentController extends Controller
     }
 
 
+    // public function listProviderMembers(Request $request, $roleId)
+    // {
+    //     $customerId = $request->user()->id;
+
+    //     // Get user IDs of members who have private documents with customer (either direction)
+    //     $memberIdsCreatedFor = PrivateDocument::where('created_by', $customerId)
+    //         ->pluck('created_for')->toArray();
+
+    //     $memberIdsCreatedBy = PrivateDocument::where('created_for', $customerId)
+    //         ->pluck('created_by')->toArray();
+
+    //     // Merge and unique, exclude the customer themselves
+    //     $memberIds = collect(array_merge($memberIdsCreatedBy, $memberIdsCreatedFor))
+    //         ->unique()
+    //         ->filter(fn($id) => $id != $customerId)
+    //         ->values();
+
+    //     // Filter members by matching role ID
+    //     $members = User::with('role') // eager load role here
+    //         ->whereIn('id', $memberIds)
+    //         ->where('role_id', $roleId)
+    //         ->get();
+
+
+
+    //     $members->each(function ($member) {
+    //         $roleName = strtolower($member->role->name);
+
+    //         if ($roleName === 'doctor') {
+    //             $member->load(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle']);
+    //         } elseif ($roleName === 'lawyer') {
+    //             $member->load(['lawyerProfile', 'lawyerProfile.lawyerSpeciality', 'lawyerProfile.lawyerTitle' ]);
+    //         } else {
+
+    //             $member->load(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality']);
+    //         }
+    //     });
+
+
+
+    //     return response()->json($members);
+    // }
+
+
     public function listProviderMembers(Request $request, $roleId)
     {
         $customerId = $request->user()->id;
 
         // Get user IDs of members who have private documents with customer (either direction)
-        $memberIdsCreatedBy = PrivateDocument::where('created_by', $customerId)
+        $memberIdsCreatedFor = PrivateDocument::where('created_by', $customerId)
             ->pluck('created_for')->toArray();
 
-        $memberIdsCreatedFor = PrivateDocument::where('created_for', $customerId)
+        $memberIdsCreatedBy = PrivateDocument::where('created_for', $customerId)
             ->pluck('created_by')->toArray();
 
         // Merge and unique, exclude the customer themselves
@@ -191,31 +235,38 @@ class DocumentController extends Controller
             ->filter(fn($id) => $id != $customerId)
             ->values();
 
-        // Filter members by matching role ID
-        $members = User::with('role') // eager load role here
+        // Fetch members and their appointments as provider
+        $members = User::with([
+            'role',
+            'appointmentsAsProvider' => function ($query) use ($customerId) {
+                $query->where('customer_id', $customerId);
+            }
+        ])
             ->whereIn('id', $memberIds)
             ->where('role_id', $roleId)
             ->get();
-         
-       
 
+        // Load additional profiles based on role
         $members->each(function ($member) {
             $roleName = strtolower($member->role->name);
+
+            // Add appointments as provider
+            $member->appointments = $member->appointmentsAsProvider;
+
+            unset($member->appointmentsAsProvider);
 
             if ($roleName === 'doctor') {
                 $member->load(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle']);
             } elseif ($roleName === 'lawyer') {
-                $member->load(['lawyerProfile', 'lawyerProfile.lawyerSpeciality', 'lawyerProfile.lawyerTitle' ]);
+                $member->load(['lawyerProfile', 'lawyerProfile.lawyerSpeciality', 'lawyerProfile.lawyerTitle']);
             } else {
-               
                 $member->load(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality']);
             }
         });
 
-     
-        
         return response()->json($members);
     }
+
 
     public function getDocumentsBetweenUsers(Request $request, $providerId)
     {
@@ -311,9 +362,4 @@ class DocumentController extends Controller
         // Return ZIP as download response and delete file after sending
         return response()->download($zipFilePath)->deleteFileAfterSend(true);
     }
-
-
-    
-
-    
 }

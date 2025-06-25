@@ -46,7 +46,7 @@ class RegisterController extends Controller
         try {
             $uniqueUserId = $this->generateUniqueUserId();
 
-   
+
 
             // Create the user and pass the generated unique_user_id
             $user = User::create([
@@ -95,12 +95,12 @@ class RegisterController extends Controller
 
     private function createCustomerProfile(User $user, Request $request)
     {
-        $validated =$request->validate([
+        $validated = $request->validate([
             'gender' => 'required|in:male,female,other',
             'dob' => 'required',
             'district' => 'required|string',
             'sub_district' => 'required|string',
-            'union_name' => 'required|string',
+            //'union_name' => 'required|string',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
 
@@ -124,8 +124,9 @@ class RegisterController extends Controller
             'dob' => $request->dob,
             'district' => $request->district,
             'sub_district' => $request->sub_district,
-            'union_name' => $request->union_name,
+            'union_name' => $request->union_name ?? 'empty', //$request->union_name,
             'avatar' => $validated['avatar'] ?? null, // Store the avatar URL
+            'address' => $request->address ?? null
         ]);
 
         $user->wallet()->create([
@@ -133,7 +134,7 @@ class RegisterController extends Controller
         ]);
 
         $user->languageState()->create([
-            'state' => 'bn', 
+            'state' => 'bn',
         ]);
     }
 
@@ -162,7 +163,7 @@ class RegisterController extends Controller
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
 
-       
+
         // Handle avatar upload if provided
         if ($request->hasFile('avatar')) {
             $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
@@ -170,15 +171,15 @@ class RegisterController extends Controller
             $request->avatar->move(public_path('images/doctor'), $imageName);
 
             // Generate full URL
-            $imageUrl = asset('images/doctor/' . $imageName);  
+            $imageUrl = asset('images/doctor/' . $imageName);
 
-           
+
             $validated['avatar'] = $imageUrl; // Store the path in the validated data
         } else {
             $validated['avatar'] = null; // Set to null if no avatar is uploaded
         }
-     
-        
+
+
 
         // Using null coalescing operator to handle nullable fields
         $bio = $validated['bio'] ?? null;
@@ -193,7 +194,7 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
-        $avatar = $validated['avatar'] ?? null; 
+        $avatar = $validated['avatar'] ?? null;
 
         // Create the doctor profile for the user
         $user->doctorProfile()->create([
@@ -273,7 +274,7 @@ class RegisterController extends Controller
         $paymentAccount = $validated['payment_account'] ?? null;
         $avatar = $validated['avatar'] ?? null; // Store the avatar URL
 
-    
+
 
 
         // Create the lawyer profile for the user
@@ -303,7 +304,7 @@ class RegisterController extends Controller
         $request->merge([
             'payment_type' => strtoupper($request->payment_type),
         ]);
-       
+
         // Validate the incoming request
         $validated = $request->validate([
             'common_speciality_id' => 'sometimes|nullable|exists:common_provider_specialities,id',
@@ -331,7 +332,7 @@ class RegisterController extends Controller
             $request->avatar->move(public_path("images/{$user->role->name}"), $imageName);
 
             // Generate full URL
-            $imageUrl = asset("images/{$user->role->name}/" . $imageName); 
+            $imageUrl = asset("images/{$user->role->name}/" . $imageName);
 
 
             $validated['avatar'] = $imageUrl; // Store the path in the validated data

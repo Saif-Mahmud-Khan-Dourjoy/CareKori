@@ -12,15 +12,24 @@ use Illuminate\Support\Facades\Validator;
 class UnAuthenticatedController extends Controller
 {
     public function getAllRolesOfServiceProviderAndCustomer()
-    {
-        $roles = Role::whereNotIn('name', ['super admin', 'moderator'])->get();
-        return response()->json([
-            'data' => $roles,
-            'message' => 'Roles fetched successfully',
-            'status' => true,
-            'code' => 200
-        ], 200);
+{
+    $customer = Role::where('name', 'customer')->first();
+
+    $otherRoles = Role::whereNotIn('name', ['super admin', 'moderator', 'customer'])->get();
+    $roles = collect();
+    if ($customer) {
+        $roles->push($customer);
     }
+    $roles = $roles->merge($otherRoles);
+
+    return response()->json([
+        'data' => $roles,
+        'message' => 'Roles fetched successfully',
+        'status' => true,
+        'code' => 200
+    ], 200);
+}
+
 
     public function getIdentificationPlaceholder($roleId)
     {

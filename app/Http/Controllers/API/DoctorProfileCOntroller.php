@@ -136,9 +136,11 @@ class DoctorProfileCOntroller extends Controller
         $user = $request->user(); // Assuming user is authenticated
 
         // Delete the old avatar if it exists
-        if ($user->avatar) {
+        if ($user->doctorProfile->avatar) {
             // Convert full URL to relative path
-            $relativePath = str_replace(asset('') . '/', '', $user->avatar);
+            $relativePath = str_replace(
+                asset(''),
+                '', $user->doctorProfile->avatar);
 
             // Check if the file exists and delete it
             if (File::exists(public_path($relativePath))) {

@@ -113,9 +113,13 @@ class LawyerProfileController extends Controller
         $user = $request->user(); // Assuming user is authenticated
 
         // Delete the old avatar if it exists
-        if ($user->avatar) {
+        if ($user->lawyerProfile->avatar) {
             // Convert full URL to relative path
-            $relativePath = str_replace(asset('') . '/', '', $user->avatar);
+            $relativePath = str_replace(
+                asset(''),
+                '',
+                $user->lawyerProfile->avatar
+            );
 
             // Check if the file exists and delete it
             if (File::exists(public_path($relativePath))) {

@@ -12,4 +12,9 @@ class DoctorSpeciality extends Model
     protected $fillable = [
         'specialized_at',
     ];
+
+    public function doctorProfiles()
+    {
+        return $this->hasMany(DoctorProfile::class, 'doctor_speciality_id');
+    }
 }
