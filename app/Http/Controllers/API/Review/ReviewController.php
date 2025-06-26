@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Review;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\Review;
 use Illuminate\Http\Request;
 
@@ -16,8 +17,18 @@ class ReviewController extends Controller
             'rating' => 'required|numeric|min:0|max:5',
         ]);
 
-        if (auth()->user()->role !== 'customer') {
+        if (auth()->user()->role->name !== 'customer') {
             return response()->json(['error' => 'Only customers can post reviews'], 403);
+        }
+
+        // Check if the user has an appointment with the provider and that it is completed
+        $appointment = Appointment::where('customer_id', auth()->id())
+            ->where('provider_id', $request->service_provider_id)
+            ->where('status', 'completed')
+            ->first();
+
+        if (!$appointment) {
+            return response()->json(['error' => 'You can only review providers after a completed appointment'], 403);
         }
 
         $review = Review::create([
@@ -38,7 +49,7 @@ class ReviewController extends Controller
         ]);
 
         $user = auth()->user();
-        if (!in_array($user->role, ['super_admin', 'moderator'])) {
+        if (!in_array($user->role->name, ['super_admin', 'moderator'])) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -52,8 +63,11 @@ class ReviewController extends Controller
     // Get approved reviews for a service provider
     public function getApprovedReviews($serviceProviderId)
     {
+
+
         $reviews = Review::where('service_provider_id', $serviceProviderId)
-            ->where('status', 'approved')
+            ->whereRaw('LOWER(status) LIKE ?', ['%approve%'])
+            ->with('customer.customerProfile') // Eager load customer and their profile
             ->latest()
             ->get();
 
