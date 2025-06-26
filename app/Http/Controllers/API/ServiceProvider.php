@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\CommonProfile;
 use App\Models\CommonProviderSpeciality;
 use App\Models\DoctorSpeciality;
@@ -142,6 +143,18 @@ class ServiceProvider extends Controller
                 'code' => 404
             ], 404);
         }
+
+        // Adding the unique customer count for each service provider (with completed appointments)
+        $serviceProvider->each(function ($provider) {
+            $completedAppointments = Appointment::where('provider_id', $provider->id)
+                // ->where('status', 'completed')
+                ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+                ->distinct('customer_id')
+                ->count('customer_id');
+
+            // Add the count to the provider's object
+            $provider->customers_count = $completedAppointments;
+        });
         return response()->json([
             'data' => $serviceProvider,
             'count' => count($serviceProvider),
