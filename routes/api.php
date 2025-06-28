@@ -25,6 +25,7 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
+use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\UnAuthenticatedController;
@@ -89,6 +90,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/providers/{providerId}/documents', [DocumentController::class, 'getDocumentsBetweenUsers']);
         Route::get('/documents/{documentId}/download', [DocumentController::class, 'downloadDocument']);
         Route::get('/documents/{providerId}/download-all', [DocumentController::class, 'downloadAllDocuments']);
+
+        Route::post('/check-promocode', [PromocodeController::class, 'check']);
     });
 
     //moderator
@@ -258,6 +261,15 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         // Update only availability status
         Route::put('/lawyer-profile/availability', [LawyerProfileController::class, 'updateAvailability']);
+    });
+
+    Route::middleware(['author:super admin,moderator'])->group(function () {
+        Route::post('/promocodes', [PromocodeController::class, 'store']);
+        Route::get('/promocodes/{id}', [PromocodeController::class, 'show']);
+        Route::put('/promocodes/{id}', [PromocodeController::class, 'update']);
+        Route::put('/promocodes/status/{id}', [PromocodeController::class, 'statusUpdate']);
+        Route::delete('/promocodes/{id}', [PromocodeController::class, 'destroy']);
+        Route::post('/promocodes/assign', [PromocodeController::class, 'assign']);
     });
 
 

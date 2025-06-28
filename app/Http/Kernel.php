@@ -68,15 +68,16 @@ class Kernel extends HttpKernel
 
     protected $routeMiddleware = [
         // Other middleware...
-        'superadmin' => \App\Http\Middleware\VerifySuperAdmin::class,  // Add this line
-        'customer' => \App\Http\Middleware\VerifyCustomer::class,  // Add this line
-        'doctor' => \App\Http\Middleware\VerifyDoctor::class,  // Add this line
-        'lawyer' => \App\Http\Middleware\VerifyLawyer::class,  // Add this line
-        'commonprovider' => \App\Http\Middleware\VerifyAllCommonProvider::class,  // Add this lin
-        'moderator' => \App\Http\Middleware\VerifyModerator::class,  // Add this line
-        'provider' => \App\Http\Middleware\VerifyProvider::class,  // Add this line
+        'superadmin' => \App\Http\Middleware\VerifySuperAdmin::class,  
+        'customer' => \App\Http\Middleware\VerifyCustomer::class,  
+        'doctor' => \App\Http\Middleware\VerifyDoctor::class,  
+        'lawyer' => \App\Http\Middleware\VerifyLawyer::class,  
+        'commonprovider' => \App\Http\Middleware\VerifyAllCommonProvider::class, 
+        'moderator' => \App\Http\Middleware\VerifyModerator::class,  
+        'provider' => \App\Http\Middleware\VerifyProvider::class,  
 
         'check.token.expiration' => \App\Http\Middleware\CheckTokenExpiration::class,
+        'author' => \App\Http\Middleware\CheckAuthor::class,  
 
     ];
 }

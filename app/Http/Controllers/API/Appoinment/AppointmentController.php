@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Appoinment;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentSlot;
+use App\Models\Promocode;
 use App\Models\ServiceProviderAvailability;
 use App\Models\User;
 use Carbon\Carbon;
@@ -12,75 +13,6 @@ use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
-
-
-
-    // public function bookAppointment(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'customer_unique_user_id' => 'required|exists:users,unique_user_id',
-    //         'provider_unique_user_id' => 'required|exists:users,unique_user_id',
-    //         'appointment_time' => 'required|date_format:Y-m-d H:i:s',
-    //     ]);
-
-    //     // Fetch customer and provider using their unique_user_id
-    //     $customer = User::with('wallet')->where('unique_user_id', $validated['customer_unique_user_id'])->first();
-    //     $provider = User::with(['role', 'doctorProfile', 'lawyerProfile', 'commonProfile'])->where('unique_user_id', $validated['provider_unique_user_id'])->first();
-
-    //     if (!$customer || !$provider) {
-    //         return response()->json(['error' => 'Invalid customer or provider'], 400);
-    //     }
-
-    //     // Determine pricing based on provider's role
-    //     $roleName = $provider->role->name ?? null;
-    //     $pricing = null;
-
-
-    //         switch ($roleName) {
-    //             case 'doctor':
-
-    //                 $pricing = $provider->doctorProfile->pricing ?? null;
-    //                 break;
-    //             case 'lawyer':
-
-    //                 $pricing = $provider->lawyerProfile->pricing ?? null;
-    //                 break;
-    //             default:
-
-    //                 $pricing = $provider->commonProfile->pricing ?? null;
-    //                 break;
-    //         }
-
-    //     if (is_null($pricing)) {
-    //         return response()->json(['error' => 'Provider pricing not found'], 400);
-    //     }
-
-    //     // Check if the customer has enough balance in their wallet
-    //     $walletBalance = $customer->wallet->balance ?? 0;
-
-    //     if ($walletBalance < $pricing) {
-    //         return response()->json(['error' => 'Insufficient balance'], 400);
-    //     }
-
-    //     // Create the appointment
-    //     $appointment = Appointment::create([
-    //         'customer_id' => $customer->id,
-    //         'provider_id' => $provider->id,
-    //         'appointment_time' => $validated['appointment_time'],
-    //         'status' => 'pending',
-    //         'price' => $pricing,
-    //     ]);
-
-    //     // Deduct the balance from the customer’s wallet
-    //     $customer->wallet->decrement('balance', $pricing);
-
-    //     return response()->json([
-    //         'message' => 'Appointment booked successfully',
-    //         'appointment' => $appointment
-    //     ]);
-    // }
-
-
 
     // public function bookAppointment(Request $request)
     // {
@@ -127,36 +59,49 @@ class AppointmentController extends Controller
 
     //     // Check if the requested appointment time is within the available slots
     //     $availability = ServiceProviderAvailability::where('provider_id', $provider->id)
-    //         ->where('day', Carbon::parse($validated['appointment_time'])->format('l'))
+    //         // ->where('day', Carbon::parse($validated['appointment_time'])->format('l'))
+    //         ->where('day', strtolower(Carbon::parse($validated['appointment_time'])->format('l')))
     //         ->first();
 
-    //     if (!$availability) {
-    //         return response()->json(['error' => 'Provider is not available on this day'], 400);
+    //     $slotAvailability = Appointment::where('provider_id', $provider->id)
+    //         ->where('appointment_time', Carbon::parse($validated['appointment_time']))
+
+    //         ->where('status', '!=', 'cancelled')
+    //         ->first();
+
+    //     if (!$availability || $slotAvailability) {
+    //         return response()->json(['error' => 'Provider is not available on this time'], 400);
     //     }
 
-    //     // Check if the slot is available (not already booked)
-    //     $slot = AppointmentSlot::where('availability_id', $availability->id)
-    //         ->where('slot_time', Carbon::parse($validated['appointment_time'])->format('H:i'))
+
+    //     $prev_appointment = Appointment::where('customer_id', $customer->id)
+    //         ->where('provider_id', $provider->id)
+    //         ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']))
+    //         ->where('status',  'cancelled')
     //         ->first();
 
-    //     if (!$slot || $slot->is_booked) {
-    //         return response()->json(['error' => 'Selected slot is not available'], 400);
+    //     if ($prev_appointment) {
+    //         // Delete the cancelled appointment
+    //         $prev_appointment->delete();
     //     }
 
     //     // Create the appointment
     //     $appointment = Appointment::create([
     //         'customer_id' => $customer->id,
     //         'provider_id' => $provider->id,
-    //         'appointment_time' => $validated['appointment_time'],
+    //         'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
     //         'status' => 'pending',
     //         'price' => $pricing,
     //     ]);
 
-    //     // Mark the slot as booked
-    //     $slot->update(['is_booked' => true]);
+
 
     //     // Deduct the balance from the customer’s wallet
     //     $customer->wallet->decrement('balance', $pricing);
+
+    //     // $message = "A customer has booked for an appointment in " . $validated['appointment_time'];
+
+    //     // $this->sendToPhone($provider->phone, $message);
 
     //     return response()->json([
     //         'message' => 'Appointment booked successfully',
@@ -164,16 +109,16 @@ class AppointmentController extends Controller
     //     ]);
     // }
 
-
     public function bookAppointment(Request $request)
     {
         $validated = $request->validate([
             'customer_unique_user_id' => 'required|exists:users,unique_user_id',
             'provider_unique_user_id' => 'required|exists:users,unique_user_id',
             'appointment_time' => 'required|date_format:Y-m-d H:i:s',
+            'isPromoApplied' => 'nullable|boolean',
+            'promocode' => 'nullable|string|exists:promocodes,code'
         ]);
 
-        // Fetch customer and provider using their unique_user_id
         $customer = User::with('wallet')->where('unique_user_id', $validated['customer_unique_user_id'])->first();
         $provider = User::with(['role', 'doctorProfile', 'lawyerProfile', 'commonProfile'])->where('unique_user_id', $validated['provider_unique_user_id'])->first();
 
@@ -181,84 +126,99 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'Invalid customer or provider'], 400);
         }
 
-        // Determine pricing based on provider's role
         $roleName = $provider->role->name ?? null;
-        $pricing = null;
+        $profile = match ($roleName) {
+            'doctor' => $provider->doctorProfile,
+            'lawyer' => $provider->lawyerProfile,
+            default => $provider->commonProfile
+        };
 
-        switch ($roleName) {
-            case 'doctor':
-                $pricing = $provider->doctorProfile->pricing ?? null;
-                break;
-            case 'lawyer':
-                $pricing = $provider->lawyerProfile->pricing ?? null;
-                break;
-            default:
-                $pricing = $provider->commonProfile->pricing ?? null;
-                break;
-        }
-
-        if (is_null($pricing)) {
+        if (!$profile || is_null($profile->pricing)) {
             return response()->json(['error' => 'Provider pricing not found'], 400);
         }
 
-        // Check if the customer has enough balance in their wallet
-        $walletBalance = $customer->wallet->balance ?? 0;
+        $originalPrice = $profile->pricing;
+        $finalPrice = $originalPrice;
 
-        if ($walletBalance < $pricing) {
+
+        if (!empty($validated['isPromoApplied']) && !empty($validated['promocode'])) {
+            $promocode = Promocode::where('code', $validated['promocode'])
+                ->where('is_active', true)
+                ->whereDate('valid_from', '<=', now())
+                ->whereDate('valid_to', '>=', now())
+                ->first();
+
+            if ($promocode) {
+                $specialityId = match ($roleName) {
+                    'doctor' => $profile->doctor_speciality_id,
+                    'lawyer' => $profile->lawyer_speciality_id,
+                    default => $profile->common_speciality_id,
+                };
+                $specialityType = $roleName;
+
+                $isAssigned = $promocode->assignments()->where(function ($q) use ($provider, $specialityId, $specialityType) {
+                    $q->where('user_id', $provider->id)
+                        ->orWhere(fn($q) => $q->where('role_id', $provider->role_id)->whereNull('speciality_id'))
+                        ->orWhere(fn($q) => $q->where('role_id', $provider->role_id)
+                            ->where('speciality_id', $specialityId)
+                            ->where('speciality_type', $specialityType));
+                })->exists();
+
+                if ($isAssigned) {
+                    $discount = $promocode->discount_type === 'percent'
+                        ? ($originalPrice * $promocode->discount / 100)
+                        : min($promocode->discount, $originalPrice);
+                    $finalPrice = $originalPrice - $discount;
+                }
+            }
+        }
+
+
+        if (($customer->wallet->balance ?? 0) < $finalPrice) {
             return response()->json(['error' => 'Insufficient balance'], 400);
         }
 
-        // Check if the requested appointment time is within the available slots
-        $availability = ServiceProviderAvailability::where('provider_id', $provider->id)
-            // ->where('day', Carbon::parse($validated['appointment_time'])->format('l'))
-            ->where('day', strtolower(Carbon::parse($validated['appointment_time'])->format('l')))
-            ->first();
 
-        $slotAvailability = Appointment::where('provider_id', $provider->id)
+        $day = strtolower(Carbon::parse($validated['appointment_time'])->format('l'));
+        $availability = ServiceProviderAvailability::where('provider_id', $provider->id)->where('day', $day)->first();
+
+        $slotTaken = Appointment::where('provider_id', $provider->id)
             ->where('appointment_time', Carbon::parse($validated['appointment_time']))
+            ->where('status', '!=', 'cancelled')->exists();
 
-            ->where('status', '!=', 'cancelled')
-            ->first();
-
-        if (!$availability || $slotAvailability) {
+        if (!$availability || $slotTaken) {
             return response()->json(['error' => 'Provider is not available on this time'], 400);
         }
 
 
-        $prev_appointment = Appointment::where('customer_id', $customer->id)
+        Appointment::where('customer_id', $customer->id)
             ->where('provider_id', $provider->id)
             ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']))
-            ->where('status',  'cancelled')
-            ->first();
+            ->where('status', 'cancelled')->delete();
 
-        if ($prev_appointment) {
-            // Delete the cancelled appointment
-            $prev_appointment->delete();
-        }
 
-        // Create the appointment
         $appointment = Appointment::create([
             'customer_id' => $customer->id,
             'provider_id' => $provider->id,
             'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
             'status' => 'pending',
-            'price' => $pricing,
+            'price' => $finalPrice,
         ]);
 
 
-
-        // Deduct the balance from the customer’s wallet
-        $customer->wallet->decrement('balance', $pricing);
+        $customer->wallet->decrement('balance', $finalPrice);
 
         // $message = "A customer has booked for an appointment in " . $validated['appointment_time'];
 
         // $this->sendToPhone($provider->phone, $message);
+
 
         return response()->json([
             'message' => 'Appointment booked successfully',
             'appointment' => $appointment
         ]);
     }
+
 
     public function sendToPhone($phone, $messageToSend)
     {
@@ -317,7 +277,7 @@ class AppointmentController extends Controller
 
     public function getAppointmentsByUser($uniqueUserId)
     {
-        // Fetch user by unique_user_id
+
         $user = User::findByUniqueUserId($uniqueUserId);
 
         if (!$user) {
@@ -325,12 +285,12 @@ class AppointmentController extends Controller
         }
 
         $appointments = Appointment::where('customer_id', $user->id)
-            ->with('provider.role') // Load provider and their role
+            ->with('provider.role')
             ->orderBy('appointment_time', 'asc')
             ->get();
 
 
-        // Load role-specific profiles for each provider
+
         foreach ($appointments as $appointment) {
             $provider = $appointment->provider;
 
@@ -367,22 +327,22 @@ class AppointmentController extends Controller
 
     public function upcomingAppointmentsForUser($uniqueUserId)
     {
-        // Fetch user by unique_user_id
+
         $user = User::findByUniqueUserId($uniqueUserId);
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        // Get upcoming appointments
+
         $appointments = Appointment::where('customer_id', $user->id)
             ->where('status', 'confirmed')
             ->where('appointment_time', '>=', now())
-            ->with('provider.role') // Load provider and their role
+            ->with('provider.role')
             ->orderBy('appointment_time', 'asc')
             ->get();
 
-        // Load role-specific profiles for each provider
+
         foreach ($appointments as $appointment) {
             $provider = $appointment->provider;
 
@@ -420,22 +380,21 @@ class AppointmentController extends Controller
     public function historyAppointmentsForUser($uniqueUserId)
     {
 
-        // Fetch user by unique_user_id
+
         $user = User::findByUniqueUserId($uniqueUserId);
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        // Get upcoming appointments
         $appointments = Appointment::where('customer_id', $user->id)
             ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
             ->where('appointment_time', '<', now())
-            ->with('provider.role') // Load provider and their role
+            ->with('provider.role')
             ->orderBy('appointment_time', 'asc')
             ->get();
 
-        // Load role-specific profiles for each provider
+
         foreach ($appointments as $appointment) {
             $provider = $appointment->provider;
 
@@ -473,7 +432,7 @@ class AppointmentController extends Controller
 
     public function getAppointmentsByProvider($uniqueUserId)
     {
-        // Fetch provider by unique_user_id
+
         $provider = User::findByUniqueUserId($uniqueUserId);
 
         if (!$provider) {
@@ -487,18 +446,18 @@ class AppointmentController extends Controller
 
     public function upcomingAppointmentsForProvider($uniqueUserId)
     {
-        // Fetch user by unique_user_id
+
         $provider = User::findByUniqueUserId($uniqueUserId);
 
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
         }
 
-        // Get upcoming appointments
+
         $appointments = Appointment::where('provider_id', $provider->id)
             ->where('status', 'confirmed')
             ->where('appointment_time', '>=', now())
-            ->with('customer.customerProfile') // Load provider and their role
+            ->with('customer.customerProfile')
             ->orderBy('appointment_time', 'asc')
             ->get();
 
@@ -511,23 +470,31 @@ class AppointmentController extends Controller
 
     public function historyAppointmentsForProvider($uniqueUserId)
     {
-        // Fetch provider by unique_user_id
+
         $provider = User::findByUniqueUserId($uniqueUserId);
 
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
         }
 
-        // Get upcoming appointments
+
         $appointments = Appointment::where('provider_id', $provider->id)
             ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
             ->where('appointment_time', '<', now())
-            ->with('customer.customerProfile') // Load provider and their role
+            ->with('customer.customerProfile')
             ->orderBy('appointment_time', 'asc')
             ->get();
 
         return response()->json(['appointments' => $appointments]);
     }
+
+    /**
+     * Update an appointment by its ID.
+     *
+     * @param Request $request
+     * @param int $appointmentId
+     * @return \Illuminate\Http\JsonResponse
+     */
 
     // public function updateAppointment(Request $request, $appointmentId)
     // {
@@ -536,7 +503,7 @@ class AppointmentController extends Controller
     //         'status' => 'nullable|in:confirmed,cancelled,completed', // Three types of status: confirmed, cancelled, completed
     //     ]);
 
-    //     // Find the appointment by its ID
+    //     
     //     $appointment = Appointment::findOrFail($appointmentId);
 
     //     // Step 1: Check if the appointment time is being updated
@@ -618,34 +585,22 @@ class AppointmentController extends Controller
     //     return response()->json(['message' => 'Appointment updated successfully', 'appointment' => $appointment]);
     // }
 
-    public function deleteAppointment($appointmentId)
-    {
-        // Find the appointment by its ID
-        $appointment = Appointment::findOrFail($appointmentId);
 
-        // Check if the authenticated user is either the provider, the customer, or a super admin
-        // if ($appointment->customer_id !== auth()->user()->id && $appointment->provider_id !== auth()->user()->id && !auth()->user()->hasRole('super admin')) {
-        //     return response()->json(['error' => 'Unauthorized to delete this appointment'], 403);
-        // }
-
-        // Delete the appointment
-        $appointment->delete();
-
-        return response()->json(['message' => 'Appointment deleted successfully']);
-    }
-
-    // public function deleteAppointmentWithinTime($appointmentId)
+    /**
+     * Delete an appointment by its ID.
+     *
+     * @param int $appointmentId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    // public function deleteAppointment($appointmentId)
     // {
+    //     
     //     $appointment = Appointment::findOrFail($appointmentId);
 
-
-
-    //     // Check if the appointment is less than 24 hours from creating
-    //     if (now()->diffInHours($appointment->appointment_time, false) > 24) {
-    //         return response()->json([
-    //             'error' => 'Appointment cannot be deleted now.'
-    //         ], 403);
-    //     }
+    //     // Check if the authenticated user is either the provider, the customer, or a super admin
+    //     // if ($appointment->customer_id !== auth()->user()->id && $appointment->provider_id !== auth()->user()->id && !auth()->user()->hasRole('super admin')) {
+    //     //     return response()->json(['error' => 'Unauthorized to delete this appointment'], 403);
+    //     // }
 
     //     // Delete the appointment
     //     $appointment->delete();
@@ -653,41 +608,109 @@ class AppointmentController extends Controller
     //     return response()->json(['message' => 'Appointment deleted successfully']);
     // }
 
-    public function cancelAppointmentWithinTime($appointmentId)
+    public function deleteAppointment($appointmentId)
     {
+
         $appointment = Appointment::findOrFail($appointmentId);
 
-        // Check if the appointment is less than 24 hours away
+
+        if (!$appointment->is_money_back) {
+
+            $wallet = $appointment->customer->wallet;
+            if ($wallet) {
+                $wallet->increment('balance', $appointment->price);
+            }
+
+            // // Update is_money_back to true in the appointment table
+            // $appointment->is_money_back = true;
+            // $appointment->save();  // Save the change
+        }
+
+
+        $appointment->delete();
+
+        return response()->json(['message' => 'Appointment deleted successfully']);
+    }
+
+
+
+    // public function cancelAppointmentWithinTime($appointmentId)
+    // {
+    //     $appointment = Appointment::findOrFail($appointmentId);
+
+    //     // Check if the appointment is less than 24 hours away
+    //     if (now()->diffInHours($appointment->appointment_time, false) < 24) {
+    //         return response()->json([
+    //             'error' => 'Appointment cannot be cancelled now.'
+    //         ], 403);
+    //     }
+
+    //     // Update the status to 'cancelled'
+    //     $appointment->status = 'cancelled';
+    //     $appointment->save();
+
+    //     return response()->json(['message' => 'Appointment cancelled successfully']);
+    // }
+
+    public function cancelAppointmentWithinTime($appointmentId)
+    {
+        $appointment = Appointment::with(['customer.wallet'])->findOrFail($appointmentId);
+
+        if (!$appointment) {
+            return response()->json(['error' => 'Appointment not found'], 404);
+        }
+
+
         if (now()->diffInHours($appointment->appointment_time, false) < 24) {
             return response()->json([
                 'error' => 'Appointment cannot be cancelled now.'
             ], 403);
         }
 
-        // Update the status to 'cancelled'
-        $appointment->status = 'cancelled';
-        $appointment->save();
 
-        return response()->json(['message' => 'Appointment cancelled successfully']);
+        if ($appointment->status === 'cancelled') {
+            return response()->json([
+                'error' => 'Appointment is already cancelled.'
+            ], 400);
+        }
+
+
+        $wallet = $appointment->customer->wallet;
+        if ($wallet) {
+            $wallet->increment('balance', $appointment->price);
+        }
+
+
+        $appointment->update([
+            'status' => 'cancelled',
+            'is_money_back' => true,
+            'is_cancel_by_user' => true,
+        ]);
+
+        return response()->json([
+            'message' => 'Appointment cancelled and money refunded successfully.'
+        ]);
     }
+
+
 
     public function updateAppointment(Request $request, $appointmentId)
     {
         $validated = $request->validate([
-            'appointment_time' => 'sometimes|nullable|date_format:Y-m-d H:i:s', // If you want to change the appointment time
-            'status' => 'sometimes|nullable|in:confirmed,cancelled,completed', // Three types of status: confirmed, cancelled, completed
+            'appointment_time' => 'sometimes|nullable|date_format:Y-m-d H:i:s',
+            'status' => 'sometimes|nullable|in:confirmed,cancelled,completed',
         ]);
 
 
-        // Find the appointment by its ID
+
         $appointment = Appointment::findOrFail($appointmentId);
 
-        // Step 1: Check if the appointment time is being updated
+
         if (isset($validated['appointment_time'])) {
-            // Convert the new appointment time to a Carbon instance
+
             $newAppointmentTime = Carbon::parse($validated['appointment_time']);
 
-            // Check if the new slot is available
+
             $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
                 // ->where('day', $newAppointmentTime->format('l')) // Get the day of the week (Monday, Tuesday, etc.)
                 ->where('day', strtolower($newAppointmentTime->format('l')))
@@ -695,13 +718,13 @@ class AppointmentController extends Controller
                 ->first();
 
             if ($availability) {
-                // Check if the new time slot is available (not booked)
+
                 $slotAvailability = Appointment::where('provider_id', $appointment->provider_id)
                     ->where('appointment_time', Carbon::parse($validated['appointment_time']))
                     ->first();
 
                 if (!$slotAvailability) {
-                    // The slot is available, so update the appointment and mark the slot as booked
+
                     $appointment->update(['appointment_time' => $validated['appointment_time']]);
                 } else {
                     return response()->json(['error' => 'The selected time slot is not available.'], 400);
@@ -711,19 +734,16 @@ class AppointmentController extends Controller
             }
         }
 
-        // Step 2: Handle the status update
+
         if (isset($validated['status'])) {
-            // Update the appointment status
 
-
-            // Handle logic based on the status change
             switch ($validated['status']) {
                 case 'confirmed':
                     $appointment->update(['status' => $validated['status']]);
                     break;
 
                 case 'cancelled':
-                    // Mark the slot as available when the appointment is cancelled
+
                     $appointment->delete();
                     break;
 
@@ -736,35 +756,90 @@ class AppointmentController extends Controller
         return response()->json(['message' => 'Appointment updated successfully', 'appointment' => $appointment]);
     }
 
+    /**
+     * Update the status of an appointment by its ID.
+     *
+     * @param Request $request
+     * @param int $appointmentId
+     * @return \Illuminate\Http\JsonResponse
+     */
+
+    // public function updateAppointmentStatus(Request $request, $appointmentId)
+    // {
+    //     $validated = $request->validate([
+
+    //         'status' => 'required|in:pending,confirmed,cancelled,completed', // Three types of status: pending,confirmed, cancelled, completed
+    //     ]);
+
+
+    //     
+    //     $appointment = Appointment::findOrFail($appointmentId);
+
+    //     $customer = $appointment->customer;
+
+    //     // Step 1: Check if the appointment time is being updated
+
+
+    //     // Step 2: Handle the status update
+    //     if (isset($validated['status'])) {
+    //         // Update the appointment status
+
+
+    //         // Handle logic based on the status change
+    //         $appointment->update(['status' => $validated['status']]);
+    //         // $message = 'Your appointment status has been updated to ' . $validated['status'] . '.';
+    //         // $this->sendToPhone($customer->phone, $message);
+    //     }
+
+    //     return response()->json(['message' => 'Appointment Status updated successfully', 'appointment' => $appointment]);
+    // }
 
     public function updateAppointmentStatus(Request $request, $appointmentId)
     {
         $validated = $request->validate([
-
-            'status' => 'required|in:pending,confirmed,cancelled,completed', // Three types of status: pending,confirmed, cancelled, completed
+            'status' => 'required|in:pending,confirmed,cancelled,completed',
         ]);
 
 
-        // Find the appointment by its ID
         $appointment = Appointment::findOrFail($appointmentId);
 
-        $customer = $appointment->customer;
-
-        // Step 1: Check if the appointment time is being updated
-
-
-        // Step 2: Handle the status update
-        if (isset($validated['status'])) {
-            // Update the appointment status
-
-
-            // Handle logic based on the status change
-            $appointment->update(['status' => $validated['status']]);
-            // $message = 'Your appointment status has been updated to ' . $validated['status'] . '.';
-            // $this->sendToPhone($customer->phone, $message);
+        if (!$appointment) {
+            return response()->json(['error' => 'Appointment not found'], 404);
         }
 
-        return response()->json(['message' => 'Appointment Status updated successfully', 'appointment' => $appointment]);
+
+        if ($appointment->is_cancel_by_user) {
+            return response()->json([
+                'message' => 'This appointment was cancelled by the user. No action can be performed.'
+            ], 403);
+        }
+
+
+        if ($validated['status'] === 'cancelled') {
+
+
+            if (!$appointment->is_money_back) {
+
+                $wallet = $appointment->customer->wallet;
+                if ($wallet) {
+                    $wallet->increment('balance', $appointment->price);  
+                }
+
+
+                $appointment->is_money_back = true;
+                $appointment->save();
+            }
+
+            $appointment->update(['status' => 'cancelled']);
+        } else {
+
+            $appointment->update(['status' => $validated['status']]);
+        }
+
+        return response()->json([
+            'message' => 'Appointment Status updated successfully',
+            'appointment' => $appointment
+        ]);
     }
 
 
@@ -829,22 +904,22 @@ class AppointmentController extends Controller
 
     public function checkAvailability($provider_unique_user_id, $appointment_date)
     {
-        // Validate input (provider_unique_user_id and appointment_date are now route parameters)
+
         $validated = [
             'provider_unique_user_id' => $provider_unique_user_id,
             'appointment_date' => $appointment_date,
         ];
 
-        // Fetch provider by unique_user_id
+
         $provider = User::where('unique_user_id', $validated['provider_unique_user_id'])->first();
 
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
         }
 
-        // Get the provider's availability for the selected date
+
         $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
-            ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))  // Get the day of the week
+            ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))
             ->where('availability_type', 'appointment')
             ->get();
 
@@ -852,7 +927,6 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'Provider is not available on this date'], 400);
         }
 
-        // Generate time slots for the available time range for each availability record
         $slotsWithStatus = [];
 
         foreach ($availabilities as $availability) {
@@ -863,11 +937,11 @@ class AppointmentController extends Controller
                 $availability->slot_duration
             );
 
-            // Check the availability of each slot and mark it as booked or available
+
             foreach ($timeSlots as $slot) {
                 $isBooked = Appointment::where('provider_id', $provider->id)
                     ->where('appointment_time', $slot)
-                    ->where('status', '!=', 'cancelled') // Exclude cancelled appointments
+                    ->where('status', '!=', 'cancelled')
                     ->exists();
 
                 $slotsWithStatus[] = [
@@ -893,7 +967,7 @@ class AppointmentController extends Controller
 
         while ($start->lessThan($end)) {
             $slots[] = $start->format('Y-m-d H:i:s');
-            $start->addMinutes($slotDuration); // Increment by the slot duration
+            $start->addMinutes($slotDuration);
         }
 
         return $slots;
