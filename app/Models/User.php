@@ -140,8 +140,19 @@ class User extends Authenticatable
 
     public function averageRating()
     {
-        return $this->receivedReviews()
+          $avg_rating= $this->receivedReviews()
             ->where('status', 'approved')
             ->avg('rating');
+
+        return $avg_rating ? round($avg_rating, 2) : 0; // Return average rating rounded to 2 decimal places, or 0 if no ratings
     }
+
+    public function reviewCount()
+    {
+        return $this->receivedReviews()
+            ->where('status', 'approved')
+            ->count();
+    }
+
+    
 }
