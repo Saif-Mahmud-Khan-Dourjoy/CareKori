@@ -61,13 +61,29 @@ class ReviewController extends Controller
     }
 
     // Get approved reviews for a service provider
+    // public function getApprovedReviews($serviceProviderId)
+    // {
+
+
+    //     $reviews = Review::where('service_provider_id', $serviceProviderId)
+    //         ->whereRaw('LOWER(status) LIKE ?', ['%approve%'])
+    //         ->with('customer.customerProfile') // Eager load customer and their profile
+    //         ->latest()
+    //         ->get();
+
+    //     return response()->json($reviews);
+    // }
+
     public function getApprovedReviews($serviceProviderId)
     {
-
-
-        $reviews = Review::where('service_provider_id', $serviceProviderId)
+        $reviews = Review::whereHas('serviceProvider', function ($query) use ($serviceProviderId) {
+            $query->where('unique_user_id', $serviceProviderId);
+        })
             ->whereRaw('LOWER(status) LIKE ?', ['%approve%'])
-            ->with('customer.customerProfile') // Eager load customer and their profile
+            ->with([
+                'customer.customerProfile',
+                'serviceProvider'           // Also eager load the service provider if needed
+            ])
             ->latest()
             ->get();
 

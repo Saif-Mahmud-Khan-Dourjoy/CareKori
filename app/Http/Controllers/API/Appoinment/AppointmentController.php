@@ -182,6 +182,8 @@ class AppointmentController extends Controller
         $day = strtolower(Carbon::parse($validated['appointment_time'])->format('l'));
         $availability = ServiceProviderAvailability::where('provider_id', $provider->id)->where('day', $day)->first();
 
+
+
         $slotTaken = Appointment::where('provider_id', $provider->id)
             ->where('appointment_time', Carbon::parse($validated['appointment_time']))
             ->where('status', '!=', 'cancelled')->exists();
@@ -211,6 +213,10 @@ class AppointmentController extends Controller
         // $message = "A customer has booked for an appointment in " . $validated['appointment_time'];
 
         // $this->sendToPhone($provider->phone, $message);
+
+
+
+
 
 
         return response()->json([
@@ -284,6 +290,10 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
+        if (auth()->user()->id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
         $appointments = Appointment::where('customer_id', $user->id)
             ->with('provider.role')
             ->orderBy('appointment_time', 'asc')
@@ -333,6 +343,11 @@ class AppointmentController extends Controller
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
+
+        if (auth()->user()->id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
 
 
         $appointments = Appointment::where('customer_id', $user->id)
@@ -387,6 +402,11 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
+        if (auth()->user()->id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
+
         $appointments = Appointment::where('customer_id', $user->id)
             ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
             ->where('appointment_time', '<', now())
@@ -439,6 +459,10 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'Provider not found'], 404);
         }
 
+        if (auth()->user()->id !== $provider->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
         $appointments = Appointment::with('customer.customerProfile')->where('provider_id', $provider->id)->get();
 
         return response()->json(['appointments' => $appointments]);
@@ -451,6 +475,10 @@ class AppointmentController extends Controller
 
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
+        }
+
+        if (auth()->user()->id !== $provider->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
 
@@ -475,6 +503,10 @@ class AppointmentController extends Controller
 
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
+        }
+
+        if (auth()->user()->id !== $provider->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
 
@@ -822,7 +854,7 @@ class AppointmentController extends Controller
 
                 $wallet = $appointment->customer->wallet;
                 if ($wallet) {
-                    $wallet->increment('balance', $appointment->price);  
+                    $wallet->increment('balance', $appointment->price);
                 }
 
 
@@ -902,9 +934,62 @@ class AppointmentController extends Controller
 
 
 
+    // public function checkAvailability($provider_unique_user_id, $appointment_date)
+    // {
+
+    //     $validated = [
+    //         'provider_unique_user_id' => $provider_unique_user_id,
+    //         'appointment_date' => $appointment_date,
+    //     ];
+
+
+    //     $provider = User::where('unique_user_id', $validated['provider_unique_user_id'])->first();
+
+    //     if (!$provider) {
+    //         return response()->json(['error' => 'Provider not found'], 404);
+    //     }
+
+
+    //     $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
+    //         ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))
+    //         ->where('availability_type', 'appointment')
+    //         ->get();
+
+    //     if ($availabilities->isEmpty()) {
+    //         return response()->json(['error' => 'Provider is not available on this date'], 400);
+    //     }
+
+    //     $slotsWithStatus = [];
+
+    //     foreach ($availabilities as $availability) {
+    //         $timeSlots = $this->generateTimeSlots(
+    //             $validated['appointment_date'],
+    //             $availability->start_time,
+    //             $availability->end_time,
+    //             $availability->slot_duration
+    //         );
+
+
+    //         foreach ($timeSlots as $slot) {
+    //             $isBooked = Appointment::where('provider_id', $provider->id)
+    //                 ->where('appointment_time', $slot)
+    //                 ->where('status', '!=', 'cancelled')
+    //                 ->exists();
+
+    //             $slotsWithStatus[] = [
+    //                 'slot' => $slot,
+    //                 'is_booked' => $isBooked,
+    //             ];
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'available_slots' => $slotsWithStatus
+    //     ]);
+    // }
+
     public function checkAvailability($provider_unique_user_id, $appointment_date)
     {
-
         $validated = [
             'provider_unique_user_id' => $provider_unique_user_id,
             'appointment_date' => $appointment_date,
@@ -930,6 +1015,7 @@ class AppointmentController extends Controller
         $slotsWithStatus = [];
 
         foreach ($availabilities as $availability) {
+
             $timeSlots = $this->generateTimeSlots(
                 $validated['appointment_date'],
                 $availability->start_time,
@@ -937,15 +1023,19 @@ class AppointmentController extends Controller
                 $availability->slot_duration
             );
 
-
             foreach ($timeSlots as $slot) {
+
                 $isBooked = Appointment::where('provider_id', $provider->id)
                     ->where('appointment_time', $slot)
                     ->where('status', '!=', 'cancelled')
                     ->exists();
 
+
+                $slotUtc = Carbon::parse($slot, env('CUSTOMER_TIMEZONE', 'UTC'))->toISOString();
+
+
                 $slotsWithStatus[] = [
-                    'slot' => $slot,
+                    'slot' => $slotUtc,
                     'is_booked' => $isBooked,
                 ];
             }
@@ -955,6 +1045,13 @@ class AppointmentController extends Controller
             'available_slots' => $slotsWithStatus
         ]);
     }
+
+
+
+
+
+
+
 
 
     // Helper method to generate time slots based on provider's availability

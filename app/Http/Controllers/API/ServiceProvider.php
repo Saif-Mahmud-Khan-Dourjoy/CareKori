@@ -10,6 +10,7 @@ use App\Models\DoctorSpeciality;
 use App\Models\LawyerSpeciality;
 use App\Models\Role;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -118,12 +119,14 @@ class ServiceProvider extends Controller
         $role = Role::find($roleId);
         switch (Str::lower($role->name)) {
             case 'doctor':
-                $serviceProvider = User::with(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle'])->where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
+                $serviceProvider = User::with(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle', 'availability'=>function($query){ $query->select('day', 'provider_id','start_time','end_time','slot_duration')->where('availability_type', 'appointment');}])->where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
                     $query->where('doctor_speciality_id', $specialityId);
                 })->get();
                 break;
             case 'lawyer':
-                $serviceProvider = User::with(['lawyerProfile', 'lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality'])->where('role_id', $roleId)->whereHas('lawyerProfile', function ($query) use ($specialityId) {
+                $serviceProvider = User::with(['lawyerProfile', 'lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality', 'availability' => function ($query) {
+                    $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')->where('availability_type', 'appointment');
+                }])->where('role_id', $roleId)->whereHas('lawyerProfile', function ($query) use ($specialityId) {
                     $query->where('lawyer_speciality_id', $specialityId);
                 })->get();
                 break;
@@ -132,7 +135,9 @@ class ServiceProvider extends Controller
                     ->whereHas('commonProfile', function ($query) use ($specialityId) {
                         $query->where('common_speciality_id', $specialityId);
                     })
-                    ->with(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality']) // Eager load related data
+                    ->with(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality', 'availability' => function ($query) {
+                    $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')->where('availability_type', 'appointment');
+                }]) // Eager load related data
                     ->get();
                 break;
         }
@@ -151,9 +156,12 @@ class ServiceProvider extends Controller
                 ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
                 ->distinct('customer_id')
                 ->count('customer_id');
+                
 
             // Add the count to the provider's object
             $provider->customers_count = $completedAppointments;
+            $provider->average_rating = $provider->averageRating();
+            $provider->review_count = $provider->reviewCount();
         });
         return response()->json([
             'data' => $serviceProvider,
