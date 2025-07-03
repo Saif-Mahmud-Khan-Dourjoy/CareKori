@@ -213,7 +213,7 @@ class AppointmentController extends Controller
             'customer_id' => $customer->id,
             'provider_id' => $provider->id,
             'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
-            'status' => 'pending',
+            'status' => 'confirmed',
             'price' => $finalPrice,
         ]);
 
