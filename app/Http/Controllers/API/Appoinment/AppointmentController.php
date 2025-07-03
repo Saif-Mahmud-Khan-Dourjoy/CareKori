@@ -1052,6 +1052,7 @@ class AppointmentController extends Controller
         }
 
         return response()->json([
+                                'slot_duration'=>"60",
             'available_slots' => $slotsWithStatus
         ]);
     }
