@@ -32,7 +32,7 @@ class RegisterController extends Controller
 
         $otp = OtpCode::where('phone', $request->phone)
             ->where('is_verified', true)
-            ->where('expires_at', '>', now())
+           // ->where('expires_at', '>', now())
             ->first();
 
         if (!$otp) {
