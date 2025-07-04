@@ -119,7 +119,17 @@ class AppointmentController extends Controller
             'promocode' => 'nullable|string|exists:promocodes,code'
         ]);
 
-        $customer = User::with('wallet')->where('unique_user_id', $validated['customer_unique_user_id'])->first();
+        $user = User::findByUniqueUserId($validated['customer_unique_user_id']);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        if (auth()->user()->id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
+        $customer = User::with('wallet')->where('unique_user_id', operator: $validated['customer_unique_user_id'])->first();
         $provider = User::with(['role', 'doctorProfile', 'lawyerProfile', 'commonProfile'])->where('unique_user_id', $validated['provider_unique_user_id'])->first();
 
         if (!$customer || !$provider) {
