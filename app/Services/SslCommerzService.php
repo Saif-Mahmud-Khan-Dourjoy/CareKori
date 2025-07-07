@@ -30,7 +30,7 @@ class SslCommerzService
 
     public function initiatePayment(array $payload): array
     {
-        $endpoint = '/gwprocess/v3/api.php';
+        $endpoint = env('SSLCZ_ENDPOINT', '/gwprocess/v3/api.php');
 
         $payload = array_merge($payload, [
             'store_id' => $this->storeId,

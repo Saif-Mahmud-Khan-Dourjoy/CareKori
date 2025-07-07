@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\SslCommerzService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -13,74 +14,20 @@ class SslCommerzController extends Controller
 {
     protected SslCommerzService $sslCommerz;
 
+
+
     public function __construct(SslCommerzService $sslCommerz)
     {
         $this->sslCommerz = $sslCommerz;
     }
 
-    // 1. Initiate Payment
-    // public function initiatePayment(Request $request)
-    // {
-    //     $request->validate([
-    //         'total_amount' => 'required|numeric|min:1',
-    //         'currency' => 'required|string|in:BDT,USD',
-    //         'cus_name' => 'required|string',
-    //         'cus_email' => 'required|email',
-    //         'cus_add1' => 'required|string',
-    //         'cus_phone' => 'required|string',
-    //     ]);
-
-    //     $tranId = 'tran_' . Str::random(10);
-
-    //     $payload = [
-    //         'total_amount' => $request->total_amount,
-    //         'currency' => $request->currency,
-    //         'tran_id' => $tranId,
-    //         'success_url' => route('api.sslcommerz.success'),
-    //         'fail_url' => route('api.sslcommerz.fail'),
-    //         'cancel_url' => route('api.sslcommerz.cancel'),
-    //         'ipn_url' => 'https://e0bf-103-84-39-241.ngrok-free.app/api/sslcommerz/ipn',
 
 
-    //         'cus_name' => $request->cus_name,
-    //         'cus_email' => $request->cus_email,
-    //         'cus_add1' => $request->cus_add1,
-    //         'cus_phone' => $request->cus_phone,
 
-    //         'shipping_method' => 'NO',
-    //         'product_name' => $request->product_name ?? 'Sample Product',
-    //         'product_category' => $request->product_category ?? 'General',
-    //         'product_profile' => 'general',
-    //     ];
-
-    //     $response = $this->sslCommerz->initiatePayment($payload);
-
-    //     if (isset($response['GatewayPageURL'])) {
-    //         return response()->json([
-    //             'payment_url' => $response['GatewayPageURL'],
-    //             'tran_id' => $tranId,
-    //         ]);
-    //     }
-
-    //     return response()->json([
-    //         'message' => 'Failed to initiate payment',
-    //         'error' => $response,
-    //     ], 500);
-    // }
-
-    // 2. Payment Success Callback
-    // public function success(Request $request)
-    // {
-    //     // You will get transaction info here. Validate and update your DB
-    //     return response()->json([
-    //         'message' => 'Payment Success',
-    //         'data' => $request->all(),
-    //     ]);
-    // }
-
-    // 3. Payment Fail Callback
     public function fail(Request $request)
     {
+
+
         $tranId = $request->tran_id ?? null;
 
         if ($tranId) {
@@ -98,6 +45,7 @@ class SslCommerzController extends Controller
 
     public function cancel(Request $request)
     {
+
         $tranId = $request->tran_id ?? null;
 
         if ($tranId) {
@@ -229,14 +177,25 @@ class SslCommerzController extends Controller
 
     public function initiatePayment(Request $request)
     {
+
+
         $request->validate([
             'total_amount' => 'required|numeric|min:1',
-            'currency' => 'required|string|in:BDT,USD',
-            'cus_name' => 'required|string',
-            'cus_email' => 'required|email',
-            'cus_add1' => 'required|string',
-            'cus_phone' => 'required|string',
+
         ]);
+
+
+        $user = Auth::user()->load('customerProfile');
+
+       
+
+
+
+        if (!$user) {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
+
+
 
         $tranId = 'tran_' . Str::random(10);
 
@@ -244,31 +203,38 @@ class SslCommerzController extends Controller
         $order = Order::create([
             'transaction_id' => $tranId,
             'amount' => $request->total_amount,
-            'currency' => $request->currency,
-            'status' => 'pending',
-            'customer_name' => $request->cus_name,
-            'customer_email' => $request->cus_email,
-            'customer_phone' => $request->cus_phone,
-            'customer_address' => $request->cus_add1,
+            'customer_name' => $user->name ?? "N/A",
+            'customer_email' => $user->email ?? "N/A",
+            'customer_phone' => $user->phone ?? "N/A",
+            'customer_address' => $user->address ?? "N/A",
         ]);
 
         $payload = [
             'total_amount' => $request->total_amount,
-            'currency' => $request->currency,
+            'currency' => "BDT",
             'tran_id' => $tranId,
+
             'success_url' => route('api.sslcommerz.success'),
             'fail_url' => route('api.sslcommerz.fail'),
             'cancel_url' => route('api.sslcommerz.cancel'),
-            'ipn_url' => route('api.sslcommerz.ipn'),
+            // 'ipn_url' => route('api.sslcommerz.ipn'),
+            'ipn_url' => 'https://bf29-103-192-156-214.ngrok-free.app/api/sslcommerz/ipn',
 
-            'cus_name' => $request->cus_name,
-            'cus_email' => $request->cus_email,
-            'cus_add1' => $request->cus_add1,
-            'cus_phone' => $request->cus_phone,
+
+            'emi_option' => 0,
+
+            'cus_name' => $user->name ?? "N/A",
+            'cus_email' => $user->email ?? "N/A",
+            'cus_add1' => $user->address ?? "N/A",
+            'cus_phone' => $user->phone ?? "N/A",
+            'cus_city' => $user->customerProfile->district ?? "N/A",
+            'cus_postcode' => data_get($user, 'customerProfile.postcode', 'N/A'),
+            'cus_country' => data_get($user, 'customerProfile.country', 'N/A'),
+
 
             'shipping_method' => 'NO',
-            'product_name' => $request->product_name ?? 'Sample Product',
-            'product_category' => $request->product_category ?? 'General',
+            'product_name' => 'Digital Product',
+            'product_category' => "Digital",
             'product_profile' => 'general',
         ];
 
@@ -292,10 +258,14 @@ class SslCommerzController extends Controller
 
     public function success(Request $request)
     {
+
+
         $valId = $request->val_id ?? null;
         if (!$valId) {
             return response()->json(['message' => 'Validation ID (val_id) missing'], 400);
         }
+
+
 
         $validationData = $this->validatePayment($valId);
         if (!$validationData) {
@@ -312,7 +282,7 @@ class SslCommerzController extends Controller
             $order->update([
                 'status' => 'paid',
                 'bank_tran_id' => $validationData['bank_tran_id'] ?? null,
-                'payment_verified_at' => now(),
+                'payment_verified_at' => now('Asia/Dhaka'),
             ]);
 
             return response()->json([
@@ -329,48 +299,49 @@ class SslCommerzController extends Controller
         ], 400);
     }
 
-    public function ipn(Request $request)
-    {
-        $ipnData = $request->all();
-        \Log::info('SSLCommerz IPN received:', $ipnData);
+    // public function ipn(Request $request)
+    // {
+    //     $ipnData = $request->all();
+    //     \Log::info('SSLCommerz IPN received:', $ipnData);
 
-        if (!isset($ipnData['val_id'])) {
-            \Log::warning('IPN missing val_id');
-            return response('Invalid IPN', 400);
-        }
+    //     exit();
 
-        $validationData = $this->validatePayment($ipnData['val_id']);
-        if (!$validationData) {
-            \Log::warning('IPN payment validation failed');
-            return response('Validation failed', 400);
-        }
+    //     if (!isset($ipnData['val_id'])) {
+    //         \Log::warning('IPN missing val_id');
+    //         return response('Invalid IPN', 400);
+    //     }
 
-        $order = Order::where('transaction_id', $validationData['tran_id'])->first();
-        if (!$order) {
-            \Log::warning('Order not found for IPN tran_id: ' . $validationData['tran_id']);
-            return response('Order not found', 404);
-        }
+    //     $validationData = $this->validatePayment($ipnData['val_id']);
+    //     if (!$validationData) {
+    //         \Log::warning('IPN payment validation failed');
+    //         return response('Validation failed', 400);
+    //     }
 
-        if (in_array(strtoupper($validationData['status']), ['VALID', 'VALIDATED', 'SUCCESS'])) {
-            $order->update([
-                'status' => 'paid',
-                'bank_tran_id' => $validationData['bank_tran_id'] ?? null,
-                'payment_verified_at' => now(),
-            ]);
-            \Log::info("Payment verified via IPN for tran_id: {$validationData['tran_id']}");
-        } else {
-            $order->update(['status' => 'failed']);
-            \Log::warning("Payment failed or invalid for tran_id: {$validationData['tran_id']}");
-        }
+    //     $order = Order::where('transaction_id', $validationData['tran_id'])->first();
+    //     if (!$order) {
+    //         \Log::warning('Order not found for IPN tran_id: ' . $validationData['tran_id']);
+    //         return response('Order not found', 404);
+    //     }
 
-        return response('IPN processed', 200);
-    }
+    //     if (in_array(strtoupper($validationData['status']), ['VALID', 'VALIDATED', 'SUCCESS'])) {
+    //         $order->update([
+    //             'status' => 'paid',
+    //             'bank_tran_id' => $validationData['bank_tran_id'] ?? null,
+    //             'payment_verified_at' => now(),
+    //         ]);
+    //     } else {
+    //         $order->update(['status' => 'failed']);
+    //         \Log::warning("Payment failed or invalid for tran_id: {$validationData['tran_id']}");
+    //     }
+
+    //     return response('IPN processed', 200);
+    // }
 
     public function refund(Request $request)
     {
         $request->validate([
             'bank_tran_id' => 'required|string',
-            'refund_trans_id' => 'required|string',
+            // 'refund_trans_id' => 'required|string',
             'refund_amount' => 'required|numeric|min:1',
             'refund_remarks' => 'required|string',
             'refe_id' => 'nullable|string',
@@ -378,13 +349,21 @@ class SslCommerzController extends Controller
 
         $order = Order::where('bank_tran_id', $request->bank_tran_id)->first();
 
+
+
         if (!$order) {
             return response()->json(['message' => 'Order not found for given bank_tran_id'], 404);
         }
 
+        if ($order->amount < $request->refund_amount) {
+            return response()->json(['message' => 'Refund amount can not be more than paid amount'], 400);
+        }
+
+        $refundTransId = 'refund_' . Str::random(10);
+
         $params = [
             'bank_tran_id' => $request->bank_tran_id,
-            'refund_trans_id' => $request->refund_trans_id,
+            'refund_trans_id' => $refundTransId,
             'refund_amount' => $request->refund_amount,
             'refund_remarks' => $request->refund_remarks,
         ];
@@ -395,10 +374,21 @@ class SslCommerzController extends Controller
 
         $response = $this->sslCommerz->refundTransaction($params);
 
+
+
         if (isset($response['status']) && strtolower($response['status']) === 'success') {
             $order->update([
-                'status' => 'refunded',
+                // 'status' => 'refunded',
                 'refund_tran_id' => $request->refund_trans_id,
+            ]);
+
+            $order->refund()->create([
+                'order_id' => $order->id,
+                'status' => $response['status'],
+                'refund_amount' => $request->refund_amount,
+                'refund_ref_id' => $response['refund_ref_id'],
+                'refund_remark' => $request->refund_remarks,
+
             ]);
 
             return response()->json([
@@ -414,28 +404,85 @@ class SslCommerzController extends Controller
     }
 
     // Payment validation helper method
+    // private function validatePayment(string $valId): ?array
+    // {
+    //     $response = Http::get('https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php', [
+    //         'val_id' => $valId,
+    //         'store_id' => config('services.sslcommerz.store_id'),
+    //         'store_passwd' => config('services.sslcommerz.store_password'),
+    //         'format' => 'json',
+    //     ]);
+
+    //     if ($response->failed()) {
+    //         \Log::error('Validation API call failed.');
+    //         return null;
+    //     }
+
+    //     $data = $response->json();
+
+    //     $validStatuses = ['VALID', 'VALIDATED', 'SUCCESS'];
+    //     if (!isset($data['status']) || !in_array(strtoupper($data['status']), $validStatuses)) {
+    //         \Log::warning('Payment validation failed:', $data);
+    //         return null;
+    //     }
+
+    //     return $data;
+    // }
+
     private function validatePayment(string $valId): ?array
     {
-        $response = Http::get('https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php', [
-            'val_id' => $valId,
-            'store_id' => config('services.sslcommerz.store_id'),
-            'store_passwd' => config('services.sslcommerz.store_password'),
-            'format' => 'json',
-        ]);
+        try {
 
-        if ($response->failed()) {
-            \Log::error('Validation API call failed.');
+            $sandbox = config('services.sslcommerz.sandbox', true);
+
+            $url = $sandbox
+                ? 'https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php'
+                : 'https://securepay.sslcommerz.com/validator/api/validationserverAPI.php';
+
+
+            $response = Http::get($url, [
+                'val_id' => $valId,
+                'store_id' => config('services.sslcommerz.store_id'),
+                'store_passwd' => config('services.sslcommerz.store_password'),
+                'format' => 'json',
+            ]);
+
+            // Check for failed request
+            if ($response->failed()) {
+                \Log::error('Validation API call failed.', ['val_id' => $valId]);
+                return null;
+            }
+
+            // Decode the JSON response
+            $data = $response->json();
+
+            // Define valid statuses
+            $validStatuses = ['VALID', 'VALIDATED', 'SUCCESS'];
+            $pendingStatuses = ['PENDING'];
+            $failedStatuses = ['FAILED', 'CANCELLED', 'EXPIRED', 'ERROR'];
+
+            // Check if the payment status is one of the valid statuses
+            if (isset($data['status']) && in_array(strtoupper($data['status']), $validStatuses)) {
+                return $data;  // Successful payment validation
+            }
+
+            // Handle the different statuses
+            if (isset($data['status']) && in_array(strtoupper($data['status']), $pendingStatuses)) {
+                \Log::info('Payment is pending:', ['response' => $data]);
+                return null;  // Handle pending payments as needed
+            }
+
+            if (isset($data['status']) && in_array(strtoupper($data['status']), $failedStatuses)) {
+                \Log::warning('Payment failed or cancelled:', ['response' => $data]);
+                return null;  // Handle failed or cancelled payments
+            }
+
+            // If the status is unknown or not listed, return null
+            \Log::warning('Unknown payment status:', ['response' => $data]);
+            return null;
+        } catch (\Exception $e) {
+            \Log::error('Validation API call exception: ' . $e->getMessage());
             return null;
         }
-
-        $data = $response->json();
-
-        $validStatuses = ['VALID', 'VALIDATED', 'SUCCESS'];
-        if (!isset($data['status']) || !in_array(strtoupper($data['status']), $validStatuses)) {
-            \Log::warning('Payment validation failed:', $data);
-            return null;
-        }
-
-        return $data;
     }
 }

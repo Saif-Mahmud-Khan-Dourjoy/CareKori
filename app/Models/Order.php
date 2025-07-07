@@ -26,4 +26,9 @@ class Order extends Model
     protected $casts = [
         'payment_verified_at' => 'datetime',
     ];
+
+    public function refund()
+    {
+        return $this->hasOne(Refund::class);
+    }
 }
