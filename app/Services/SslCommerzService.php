@@ -63,4 +63,24 @@ class SslCommerzService
 
         return json_decode($response->getBody()->getContents(), true);
     }
+
+    public function refundStatus(array $params): array
+    {
+        $baseUrl = $this->sandbox
+            ? 'https://sandbox.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php'
+            : 'https://securepay.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php';
+
+        // Add store credentials to params
+        $params = array_merge($params, [
+            'store_id' => $this->storeId,
+            'store_passwd' => $this->storePassword,
+        
+        ]);
+
+        $response = $this->http->get($baseUrl, [
+            'query' => $params,
+        ]);
+
+        return json_decode($response->getBody()->getContents(), true);
+    }
 }

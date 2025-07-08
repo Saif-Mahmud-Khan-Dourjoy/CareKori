@@ -187,7 +187,7 @@ class SslCommerzController extends Controller
 
         $user = Auth::user()->load('customerProfile');
 
-       
+
 
 
 
@@ -201,6 +201,7 @@ class SslCommerzController extends Controller
 
         // Create order in DB with pending status
         $order = Order::create([
+            'user_id' => $user->id,
             'transaction_id' => $tranId,
             'amount' => $request->total_amount,
             'customer_name' => $user->name ?? "N/A",
@@ -218,7 +219,7 @@ class SslCommerzController extends Controller
             'fail_url' => route('api.sslcommerz.fail'),
             'cancel_url' => route('api.sslcommerz.cancel'),
             // 'ipn_url' => route('api.sslcommerz.ipn'),
-            'ipn_url' => 'https://bf29-103-192-156-214.ngrok-free.app/api/sslcommerz/ipn',
+            'ipn_url' => 'https://4c746502864e.ngrok-free.app/api/sslcommerz/ipn',
 
 
             'emi_option' => 0,
@@ -285,6 +286,10 @@ class SslCommerzController extends Controller
                 'payment_verified_at' => now('Asia/Dhaka'),
             ]);
 
+            if ($order->user && $order->user->wallet) {
+                $order->user->wallet->increment('balance', $order->amount);
+            }
+
             return response()->json([
                 'message' => 'Payment verified successfully',
                 'data' => $validationData,
@@ -339,57 +344,119 @@ class SslCommerzController extends Controller
 
     public function refund(Request $request)
     {
+
+        try {
+            $request->validate([
+                'bank_tran_id' => 'required|string',
+                // 'refund_trans_id' => 'required|string',
+                'refund_amount' => 'required|numeric|min:1',
+                'refund_remarks' => 'required|string',
+                'refe_id' => 'nullable|string',
+            ]);
+
+            $order = Order::where('bank_tran_id', $request->bank_tran_id)->first();
+
+
+
+            if (!$order) {
+                return response()->json(['message' => 'Order not found for given bank_tran_id'], 404);
+            }
+
+            if ($order->amount < $request->refund_amount) {
+                return response()->json(['message' => 'Refund amount can not be more than paid amount'], 400);
+            }
+
+            $refundTransId = 'refund_' . Str::random(10);
+
+            $params = [
+                'bank_tran_id' => $request->bank_tran_id,
+                'refund_trans_id' => $refundTransId,
+                'refund_amount' => $request->refund_amount,
+                'refund_remarks' => $request->refund_remarks,
+            ];
+
+            if ($request->has('refe_id')) {
+                $params['refe_id'] = $request->refe_id;
+            }
+
+            $response = $this->sslCommerz->refundTransaction($params);
+
+
+
+            if (isset($response['status']) && strtolower($response['status']) === 'success') {
+                $order->update([
+                    // 'status' => 'refunded',
+                    'refund_tran_id' => $request->refund_trans_id,
+                ]);
+
+
+
+                $order->refund()->updateOrCreate(
+                    [],
+                    [
+                        'status' => $response['status'],
+                        'refund_amount' => $request->refund_amount,
+                        'refund_ref_id' => $response['refund_ref_id'],
+                        'refund_remark' => $request->refund_remarks,
+                    ]
+                );
+
+                if ($order->user && $order->user->wallet) {
+                    $order->user->wallet->decrement('balance', $request->refund_amount);
+                }
+
+                return response()->json([
+                    'message' => 'Refund successful',
+                    'data' => $response,
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Refund failed',
+                'data' => $response,
+            ], 400);
+        } catch (\Exception $e) {
+            \Log::error('Regund API call exception: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Refund failed',
+               
+            ], 400);
+        }
+    }
+
+
+
+    public function refundStatus(Request $request)
+    {
         $request->validate([
-            'bank_tran_id' => 'required|string',
-            // 'refund_trans_id' => 'required|string',
-            'refund_amount' => 'required|numeric|min:1',
-            'refund_remarks' => 'required|string',
-            'refe_id' => 'nullable|string',
+            'refund_ref_id' => 'required|string',
         ]);
 
-        $order = Order::where('bank_tran_id', $request->bank_tran_id)->first();
+        $order = Order::whereHas('refund', function ($query) use ($request) {
+            $query->where('refund_ref_id', $request->refund_ref_id);
+        })->first();
 
 
 
         if (!$order) {
-            return response()->json(['message' => 'Order not found for given bank_tran_id'], 404);
+            return response()->json(['message' => 'Order not found'], 404);
         }
 
-        if ($order->amount < $request->refund_amount) {
-            return response()->json(['message' => 'Refund amount can not be more than paid amount'], 400);
-        }
 
-        $refundTransId = 'refund_' . Str::random(10);
+
 
         $params = [
-            'bank_tran_id' => $request->bank_tran_id,
-            'refund_trans_id' => $refundTransId,
-            'refund_amount' => $request->refund_amount,
-            'refund_remarks' => $request->refund_remarks,
+            'refund_ref_id' => $request->refund_ref_id,
         ];
 
-        if ($request->has('refe_id')) {
-            $params['refe_id'] = $request->refe_id;
-        }
 
-        $response = $this->sslCommerz->refundTransaction($params);
+
+        $response = $this->sslCommerz->refundStatus($params);
 
 
 
         if (isset($response['status']) && strtolower($response['status']) === 'success') {
-            $order->update([
-                // 'status' => 'refunded',
-                'refund_tran_id' => $request->refund_trans_id,
-            ]);
 
-            $order->refund()->create([
-                'order_id' => $order->id,
-                'status' => $response['status'],
-                'refund_amount' => $request->refund_amount,
-                'refund_ref_id' => $response['refund_ref_id'],
-                'refund_remark' => $request->refund_remarks,
-
-            ]);
 
             return response()->json([
                 'message' => 'Refund successful',
@@ -485,4 +552,70 @@ class SslCommerzController extends Controller
             return null;
         }
     }
+
+
+    // Test
+    // public function ipn(Request $request)
+    // {
+    //     $ipnData = $request->all();
+    //     \Log::info('SSLCommerz IPN received:', $ipnData);
+
+    //     // Validate IPN data
+    //     if (!isset($ipnData['val_id'])) {
+    //         \Log::warning('IPN missing val_id');
+    //         return response('Invalid IPN', 400);
+    //     }
+
+    //     // Validate the payment (for both payment and refund)
+    //     $validationData = $this->validatePayment($ipnData['val_id']);
+    //     if (!$validationData) {
+    //         \Log::warning('IPN payment validation failed');
+    //         return response('Validation failed', 400);
+    //     }
+
+    //     // Find the order based on the transaction ID
+    //     $order = Order::where('transaction_id', $validationData['tran_id'])->first();
+    //     if (!$order) {
+    //         \Log::warning('Order not found for IPN tran_id: ' . $validationData['tran_id']);
+    //         return response('Order not found', 404);
+    //     }
+
+    //     // Check if it's a refund and process accordingly
+    //     if (isset($ipnData['refund_ref_id'])) {
+    //         // Handle refund logic
+    //         $refundRefId = $ipnData['refund_ref_id'];
+    //         $refundAmount = $ipnData['refund_amount'] ?? 0;
+
+    //         // If refund is successful, update the order to 'refunded'
+    //         if (in_array(strtoupper($validationData['status']), ['VALID', 'SUCCESS'])) {
+    //             $order->update([
+    //                 'status' => 'refunded', // Set order status to 'refunded'
+    //                 'refund_ref_id' => $refundRefId, // Store the refund ref ID
+    //                 'refund_amount' => $refundAmount, // Store the refund amount
+    //                 'payment_verified_at' => now(),
+    //             ]);
+
+    //             \Log::info("Refund processed for tran_id: {$validationData['tran_id']}, refund_ref_id: {$refundRefId}");
+    //         } else {
+    //             // Handle refund failure or cancellation
+    //             \Log::warning("Refund failed or invalid for tran_id: {$validationData['tran_id']}, refund_ref_id: {$refundRefId}");
+    //         }
+    //     } else {
+    //         // Handle regular payment (if no refund transaction ID is present)
+    //         if (in_array(strtoupper($validationData['status']), ['VALID', 'VALIDATED', 'SUCCESS'])) {
+    //             $order->update([
+    //                 'status' => 'paid', // Mark the order as paid
+    //                 'bank_tran_id' => $validationData['bank_tran_id'] ?? null, // Store bank transaction ID
+    //                 'payment_verified_at' => now(), // Set payment verified timestamp
+    //             ]);
+
+    //             \Log::info("Payment verified for tran_id: {$validationData['tran_id']}");
+    //         } else {
+    //             $order->update(['status' => 'failed']); // Mark the order as failed
+    //             \Log::warning("Payment failed or invalid for tran_id: {$validationData['tran_id']}");
+    //         }
+    //     }
+
+    //     return response('IPN processed', 200);
+    // }
 }
