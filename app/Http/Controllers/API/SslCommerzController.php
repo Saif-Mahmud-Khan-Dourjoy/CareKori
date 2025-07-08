@@ -419,7 +419,7 @@ class SslCommerzController extends Controller
             \Log::error('Regund API call exception: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Refund failed',
-               
+
             ], 400);
         }
     }
@@ -453,13 +453,28 @@ class SslCommerzController extends Controller
 
         $response = $this->sslCommerz->refundStatus($params);
 
+   
+
+       
 
 
-        if (isset($response['status']) && strtolower($response['status']) === 'success') {
+
+        if (isset($response['status']) && strtolower(trim($response['status'])) === 'refunded') { 
 
 
             return response()->json([
-                'message' => 'Refund successful',
+                'message' => 'Refunded successful',
+                'data' => $response,
+            ]);
+        }
+
+
+
+        if (isset($response['status']) && strtolower(trim($response['status'])) === 'processing') {
+
+
+            return response()->json([
+                'message' => 'Refund is processing',
                 'data' => $response,
             ]);
         }

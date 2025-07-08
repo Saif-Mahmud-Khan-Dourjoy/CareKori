@@ -73,6 +73,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::prefix('sslcommerz')->group(function () {
         Route::post('/initiate-payment', [SslCommerzController::class, 'initiatePayment']);
         Route::post('/refund', [SslCommerzController::class, 'refund']);
+        Route::post('/refundStatus', [SslCommerzController::class, 'refundStatus']);
 
       
     });
