@@ -213,7 +213,7 @@ class AppointmentController extends Controller
             'customer_id' => $customer->id,
             'provider_id' => $provider->id,
             'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
-            'status' => 'pending',
+            'status' => 'confirmed',
             'price' => $finalPrice,
         ]);
 
@@ -1052,6 +1052,7 @@ class AppointmentController extends Controller
         }
 
         return response()->json([
+                                'slot_duration'=>"60",
             'available_slots' => $slotsWithStatus
         ]);
     }
