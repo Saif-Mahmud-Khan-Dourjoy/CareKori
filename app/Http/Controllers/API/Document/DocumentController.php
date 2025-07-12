@@ -268,9 +268,11 @@ class DocumentController extends Controller
     }
 
 
-    public function getDocumentsBetweenUsers(Request $request, $providerId)
+    public function getDocumentsBetweenUsers(Request $request, $providerUniqueId)
     {
         $customerId = $request->user()->id;
+
+        $providerId = optional(User::findByUniqueUserId($providerUniqueId))->id;
 
         // Documents uploaded by customer for provider
         $providedByCustomer = Document::with('privateDocument')

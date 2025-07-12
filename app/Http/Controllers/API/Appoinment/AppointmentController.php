@@ -698,9 +698,15 @@ class AppointmentController extends Controller
     {
         $appointment = Appointment::with(['customer.wallet'])->findOrFail($appointmentId);
 
+        if ($appointment->customer_id != auth()->user()->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
         if (!$appointment) {
             return response()->json(['error' => 'Appointment not found'], 404);
         }
+
+
 
 
         if (now()->diffInHours($appointment->appointment_time, false) < 24) {
@@ -743,60 +749,73 @@ class AppointmentController extends Controller
             'status' => 'sometimes|nullable|in:confirmed,cancelled,completed',
         ]);
 
-
-
         $appointment = Appointment::findOrFail($appointmentId);
 
-
-        if (isset($validated['appointment_time'])) {
-
-            $newAppointmentTime = Carbon::parse($validated['appointment_time']);
-
-
-            $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
-                // ->where('day', $newAppointmentTime->format('l')) // Get the day of the week (Monday, Tuesday, etc.)
-                ->where('day', strtolower($newAppointmentTime->format('l')))
-
-                ->first();
-
-            if ($availability) {
-
-                $slotAvailability = Appointment::where('provider_id', $appointment->provider_id)
-                    ->where('appointment_time', Carbon::parse($validated['appointment_time']))
-                    ->first();
-
-                if (!$slotAvailability) {
-
-                    $appointment->update(['appointment_time' => $validated['appointment_time']]);
-                } else {
-                    return response()->json(['error' => 'The selected time slot is not available.'], 400);
-                }
-            } else {
-                return response()->json(['error' => 'Provider is not available at the new time.'], 400);
-            }
+        if ($appointment->customer_id != auth()->user()->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
+        // Only allow updates to confirmed appointments
+        if ($appointment->status !== 'confirmed') {
+            return response()->json(['error' => 'Only confirmed appointments can be updated'], 400);
+        }
 
-        if (isset($validated['status'])) {
+        // Update appointment time
+        if (!empty($validated['appointment_time'])) {
+            $newTime = Carbon::parse($validated['appointment_time']);
 
+            // Ensure new appointment time is in the future
+            if ($newTime->lessThanOrEqualTo(now())) {
+                return response()->json(['error' => 'Appointment time must be in the future'], 400);
+            }
+
+            $day = strtolower($newTime->format('l'));
+
+            $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
+                ->where('day', $day)
+                ->first();
+
+            if (!$availability) {
+                return response()->json(['error' => 'Provider is not available on this day'], 400);
+            }
+
+            // Check if slot is already taken by another appointment
+            $slotTaken = Appointment::where('provider_id', $appointment->provider_id)
+                ->where('appointment_time', $newTime)
+                ->where('status', '!=', 'cancelled')
+                ->where('id', '!=', $appointment->id)
+                ->exists();
+
+            if ($slotTaken) {
+                return response()->json(['error' => 'The selected time slot is already taken'], 400);
+            }
+
+            // Update time
+            $appointment->appointment_time = $validated['appointment_time'];
+        }
+
+        // Update status if provided
+        if (!empty($validated['status'])) {
             switch ($validated['status']) {
                 case 'confirmed':
-                    $appointment->update(['status' => $validated['status']]);
+                case 'completed':
+                    $appointment->status = $validated['status'];
                     break;
 
                 case 'cancelled':
-
                     $appointment->delete();
-                    break;
-
-                case 'completed':
-                    $appointment->update(['status' => $validated['status']]);
-                    break;
+                    return response()->json(['message' => 'Appointment cancelled successfully']);
             }
         }
 
-        return response()->json(['message' => 'Appointment updated successfully', 'appointment' => $appointment]);
+        $appointment->save();
+
+        return response()->json([
+            'message' => 'Appointment updated successfully',
+            'appointment' => $appointment
+        ]);
     }
+
 
     /**
      * Update the status of an appointment by its ID.
@@ -1052,7 +1071,7 @@ class AppointmentController extends Controller
         }
 
         return response()->json([
-                                'slot_duration'=>"60",
+            'slot_duration' => "60",
             'available_slots' => $slotsWithStatus
         ]);
     }

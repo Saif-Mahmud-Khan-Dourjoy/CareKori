@@ -71,7 +71,7 @@ class OtpController extends Controller
             ->where('expires_at', '>', $now)
             ->first();
 
-        if (!$otp) return response()->json(['message' => 'Invalid or expired OTP'], 422);
+        if (!$otp) return response()->json(['message' => 'Invalid or expired OTP'], 400);
 
         $otp->update(['is_verified' => true]);
         return response()->json(['message' => 'OTP verified']);
@@ -222,7 +222,7 @@ class OtpController extends Controller
             return response()->json(['message' => 'Phone number already exists'], 409);
         }
         if (!Hash::check($validated['password'], $user->password)) {
-            return response()->json(['error' => 'Invalid Credentials'], 401);
+            return response()->json(['error' => 'Invalid Credentials'], 400);
         }
 
         // Generate OTP
@@ -347,7 +347,7 @@ class OtpController extends Controller
             ->first();
 
         if (!$otp) {
-            return response()->json(['message' => 'Invalid or expired OTP'], 422);
+            return response()->json(['message' => 'Invalid or expired OTP'], 400);
         }
 
         $otp->update(['is_verified' => true]);
@@ -373,7 +373,7 @@ class OtpController extends Controller
             ->first();
 
         if (!$otp) {
-            return response()->json(['message' => 'OTP not verified'], 422);
+            return response()->json(['message' => 'OTP not verified'], 400);
         }
 
         // Update the user's password
