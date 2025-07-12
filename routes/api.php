@@ -90,7 +90,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/update/profile/image', [CustomerProfile::class, 'updateProfileImage']);
 
         Route::post('/appointments', [AppointmentController::class, 'bookAppointment']);
-        // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
+        Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
         Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
         Route::get('/appointments/user/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForUser']);
@@ -116,7 +116,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         Route::get('/document/list-provider-members/{roleId}', [DocumentController::class, 'listProviderMembers']);
-        Route::get('/providers/{providerId}/documents', [DocumentController::class, 'getDocumentsBetweenUsers']);
+        Route::get('/providers/{providerUniqueId}/documents', [DocumentController::class, 'getDocumentsBetweenUsers']);
         Route::get('/documents/{documentId}/download', [DocumentController::class, 'downloadDocument']);
         Route::get('/documents/{providerId}/download-all', [DocumentController::class, 'downloadAllDocuments']);
 
