@@ -16,9 +16,19 @@ class Appointment extends Model
     ];
     protected $appends = ['appointment_time_utc_iso'];
 
-    protected $hidden = ['appointment_time'];
+    // protected $hidden = ['appointment_time'];
 
     public function getAppointmentTimeUtcIsoAttribute()
+    {
+        return Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $this->getRawOriginal('appointment_time'),
+            env('CUSTOMER_TIMEZONE', 'UTC')
+        )
+            ->toISOString();
+    }
+
+    public function getAppointmentTimeAttribute()
     {
         return Carbon::createFromFormat(
             'Y-m-d H:i:s',

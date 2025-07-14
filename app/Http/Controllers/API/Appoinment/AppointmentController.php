@@ -10,6 +10,7 @@ use App\Models\ServiceProviderAvailability;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AppointmentController extends Controller
 {
@@ -189,13 +190,18 @@ class AppointmentController extends Controller
         }
 
 
-        $day = strtolower(Carbon::parse($validated['appointment_time'])->format('l'));
+
+
+        // Carbon::parse($validated['appointment_time'])
+
+
+        $day = strtolower(Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time'], 'UTC')->format('l'));
         $availability = ServiceProviderAvailability::where('provider_id', $provider->id)->where('day', $day)->first();
 
 
 
         $slotTaken = Appointment::where('provider_id', $provider->id)
-            ->where('appointment_time', Carbon::parse($validated['appointment_time']))
+            ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time'], 'UTC'))
             ->where('status', '!=', 'cancelled')->exists();
 
         if (!$availability || $slotTaken) {
@@ -205,14 +211,17 @@ class AppointmentController extends Controller
 
         Appointment::where('customer_id', $customer->id)
             ->where('provider_id', $provider->id)
-            ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']))
+            // ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']))
+            ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time'], 'UTC'))
             ->where('status', 'cancelled')->delete();
+
+
 
 
         $appointment = Appointment::create([
             'customer_id' => $customer->id,
             'provider_id' => $provider->id,
-            'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
+            'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time'], 'UTC'),
             'status' => 'confirmed',
             'price' => $finalPrice,
         ]);
@@ -399,8 +408,27 @@ class AppointmentController extends Controller
             }
         }
 
+        // Fix: apply metrics to actual provider object
+        $appointments->each(function ($appointment) {
+            $provider = $appointment->provider;
+
+            if ($provider) {
+                $completedAppointments = Appointment::where('provider_id', $provider->id)
+                    ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+                    // ->distinct('customer_id')
+                    ->count('customer_id');
+
+                $provider->customers_count = $completedAppointments;
+                $provider->average_rating = $provider->averageRating();
+                $provider->review_count = $provider->reviewCount();
+                $provider->experience_count = rand(0, 9); // Replace with real logic if needed
+            }
+        });
+
         return response()->json(['appointments' => $appointments]);
     }
+
+
 
     public function historyAppointmentsForUser($uniqueUserId)
     {
@@ -456,6 +484,22 @@ class AppointmentController extends Controller
             }
         }
 
+        $appointments->each(function ($appointment) {
+            $provider = $appointment->provider;
+
+            if ($provider) {
+                $completedAppointments = Appointment::where('provider_id', $provider->id)
+                    ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+                    // ->distinct('customer_id')
+                    ->count('customer_id');
+
+                $provider->customers_count = $completedAppointments;
+                $provider->average_rating = $provider->averageRating();
+                $provider->review_count = $provider->reviewCount();
+                $provider->experience_count = rand(0, 9); // Replace with real logic if needed
+            }
+        });
+
         return response()->json(['appointments' => $appointments]);
     }
 
@@ -500,10 +544,42 @@ class AppointmentController extends Controller
             ->get();
 
 
+        // $appointments->each(function ($appointment) {
+        //     $providerId = $appointment->provider_id;
+
+        //     $provider = User::findOrFail($providerId);
+
+        //     if ($provider) {
+        //         $completedAppointments = Appointment::where('provider_id', $provider->id)
+        //             ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+        //             ->distinct('customer_id')
+        //             ->count('customer_id');
+
+        //         $appointment->customers_count = $completedAppointments;
+        //         $appointment->average_rating = $provider->averageRating();
+        //         $appointment->review_count = $provider->reviewCount();
+        //         $appointment->experience_count = rand(0, 9); // Replace with real logic if needed
+        //     }
+        // });
+
+        $providerInfo=[];
+
+        $completedAppointments = Appointment::where('provider_id', $provider->id)
+                    ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+                    // ->distinct('customer_id')
+                    ->count('customer_id');
+
+        $providerInfo['customers_count'] = $completedAppointments;
+        $providerInfo['average_rating'] = $provider->averageRating();
+        $providerInfo['review_count'] = $provider->reviewCount();
+        $providerInfo['experience_count'] = rand(0, 9);
 
 
 
-        return response()->json(['appointments' => $appointments]);
+
+
+
+        return response()->json(['appointments' => $appointments, 'providerInfo'=> $providerInfo]);
     }
 
     public function historyAppointmentsForProvider($uniqueUserId)
@@ -527,7 +603,45 @@ class AppointmentController extends Controller
             ->orderBy('appointment_time', 'asc')
             ->get();
 
-        return response()->json(['appointments' => $appointments]);
+
+        // $appointments->each(function ($appointment) {
+        //     $providerId = $appointment->provider_id;
+
+        //     $provider = User::findOrFail($providerId);
+
+        //     if ($provider) {
+        //         $completedAppointments = Appointment::where('provider_id', $provider->id)
+        //             ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+        //             ->distinct('customer_id')
+        //             ->count('customer_id');
+
+        //         $appointment->customers_count = $completedAppointments;
+        //         $appointment->average_rating = $provider->averageRating();
+        //         $appointment->review_count = $provider->reviewCount();
+        //         $appointment->experience_count = rand(0, 9); // Replace with real logic if needed
+        //     }
+        // });
+
+        $providerInfo = [];
+
+        $completedAppointments = Appointment::where('provider_id', $provider->id)
+            ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+            // ->distinct('customer_id')
+            ->count('customer_id');
+
+        $providerInfo['customers_count'] = $completedAppointments;
+        $providerInfo['average_rating'] = $provider->averageRating();
+        $providerInfo['review_count'] = $provider->reviewCount();
+        $providerInfo['experience_count'] = rand(0, 9);
+
+
+
+
+
+
+        return response()->json(['appointments' => $appointments, 'providerInfo' => $providerInfo]);
+
+        // return response()->json(['appointments' => $appointments]);
     }
 
     /**
@@ -709,7 +823,7 @@ class AppointmentController extends Controller
 
 
 
-        if (now()->diffInHours($appointment->appointment_time, false) < 24) {
+        if (now('UTC')->diffInHours($appointment->appointment_time, false) < 24) {
             return response()->json([
                 'error' => 'Appointment cannot be cancelled now.'
             ], 403);
@@ -1049,7 +1163,8 @@ class AppointmentController extends Controller
                 $validated['appointment_date'],
                 $availability->start_time,
                 $availability->end_time,
-                $availability->slot_duration
+                env('SLOT_DURATION')
+                // $availability->slot_duration
             );
 
             foreach ($timeSlots as $slot) {
