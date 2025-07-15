@@ -1,1208 +1,367 @@
 <?php
 
-namespace App\Http\Controllers\API\Appoinment;
+namespace App\Http\Controllers\API\Document;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
-use App\Models\AppointmentSlot;
-use App\Models\Promocode;
-use App\Models\ServiceProviderAvailability;
+use App\Models\Document;
+use App\Models\PrivateDocument;
+use App\Models\Role;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use ZipArchive;
 
-class AppointmentController extends Controller
+class DocumentController extends Controller
 {
-
-    // public function bookAppointment(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'customer_unique_user_id' => 'required|exists:users,unique_user_id',
-    //         'provider_unique_user_id' => 'required|exists:users,unique_user_id',
-    //         'appointment_time' => 'required|date_format:Y-m-d H:i:s',
-    //     ]);
-
-    //     // Fetch customer and provider using their unique_user_id
-    //     $customer = User::with('wallet')->where('unique_user_id', $validated['customer_unique_user_id'])->first();
-    //     $provider = User::with(['role', 'doctorProfile', 'lawyerProfile', 'commonProfile'])->where('unique_user_id', $validated['provider_unique_user_id'])->first();
-
-    //     if (!$customer || !$provider) {
-    //         return response()->json(['error' => 'Invalid customer or provider'], 400);
-    //     }
-
-    //     // Determine pricing based on provider's role
-    //     $roleName = $provider->role->name ?? null;
-    //     $pricing = null;
-
-    //     switch ($roleName) {
-    //         case 'doctor':
-    //             $pricing = $provider->doctorProfile->pricing ?? null;
-    //             break;
-    //         case 'lawyer':
-    //             $pricing = $provider->lawyerProfile->pricing ?? null;
-    //             break;
-    //         default:
-    //             $pricing = $provider->commonProfile->pricing ?? null;
-    //             break;
-    //     }
-
-    //     if (is_null($pricing)) {
-    //         return response()->json(['error' => 'Provider pricing not found'], 400);
-    //     }
-
-    //     // Check if the customer has enough balance in their wallet
-    //     $walletBalance = $customer->wallet->balance ?? 0;
-
-    //     if ($walletBalance < $pricing) {
-    //         return response()->json(['error' => 'Insufficient balance'], 400);
-    //     }
-
-    //     // Check if the requested appointment time is within the available slots
-    //     $availability = ServiceProviderAvailability::where('provider_id', $provider->id)
-    //         // ->where('day', Carbon::parse($validated['appointment_time'])->format('l'))
-    //         ->where('day', strtolower(Carbon::parse($validated['appointment_time'])->format('l')))
-    //         ->first();
-
-    //     $slotAvailability = Appointment::where('provider_id', $provider->id)
-    //         ->where('appointment_time', Carbon::parse($validated['appointment_time']))
-
-    //         ->where('status', '!=', 'cancelled')
-    //         ->first();
-
-    //     if (!$availability || $slotAvailability) {
-    //         return response()->json(['error' => 'Provider is not available on this time'], 400);
-    //     }
-
-
-    //     $prev_appointment = Appointment::where('customer_id', $customer->id)
-    //         ->where('provider_id', $provider->id)
-    //         ->where('appointment_time', Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']))
-    //         ->where('status',  'cancelled')
-    //         ->first();
-
-    //     if ($prev_appointment) {
-    //         // Delete the cancelled appointment
-    //         $prev_appointment->delete();
-    //     }
-
-    //     // Create the appointment
-    //     $appointment = Appointment::create([
-    //         'customer_id' => $customer->id,
-    //         'provider_id' => $provider->id,
-    //         'appointment_time' => Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time']),
-    //         'status' => 'pending',
-    //         'price' => $pricing,
-    //     ]);
-
-
-
-    //     // Deduct the balance from the customer’s wallet
-    //     $customer->wallet->decrement('balance', $pricing);
-
-    //     // $message = "A customer has booked for an appointment in " . $validated['appointment_time'];
-
-    //     // $this->sendToPhone($provider->phone, $message);
-
-    //     return response()->json([
-    //         'message' => 'Appointment booked successfully',
-    //         'appointment' => $appointment
-    //     ]);
-    // }
-
-    public function bookAppointment(Request $request)
-{
-    $validated = $request->validate([
-        'customer_unique_user_id' => 'required|exists:users,unique_user_id',
-        'provider_unique_user_id' => 'required|exists:users,unique_user_id',
-        'appointment_time' => 'required|date_format:Y-m-d H:i:s',
-        'isPromoApplied' => 'nullable|boolean',
-        'promocode' => 'nullable|string|exists:promocodes,code'
-    ]);
-
-    // ✅ Parse and check if appointment time is in the past (in UTC)
-    $appointmentTime = Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time'], 'UTC');
-    $nowUtc = Carbon::now('UTC');
-
-    if ($appointmentTime->lessThanOrEqualTo($nowUtc)) {
-        return response()->json(['error' => 'You cannot book an appointment in the past.'], 422);
-    }
-
-    $user = User::findByUniqueUserId($validated['customer_unique_user_id']);
-
-    if (!$user) {
-        return response()->json(['error' => 'User not found'], 404);
-    }
-
-    if (auth()->user()->id !== $user->id) {
-        return response()->json(['error' => 'Unauthorized access'], 403);
-    }
-
-    $customer = User::with('wallet')->where('unique_user_id', $validated['customer_unique_user_id'])->first();
-    $provider = User::with(['role', 'doctorProfile', 'lawyerProfile', 'commonProfile'])
-        ->where('unique_user_id', $validated['provider_unique_user_id'])->first();
-
-    if (!$customer || !$provider) {
-        return response()->json(['error' => 'Invalid customer or provider'], 400);
-    }
-
-    $roleName = $provider->role->name ?? null;
-    $profile = match ($roleName) {
-        'doctor' => $provider->doctorProfile,
-        'lawyer' => $provider->lawyerProfile,
-        default => $provider->commonProfile
-    };
-
-    if (!$profile || is_null($profile->pricing)) {
-        return response()->json(['error' => 'Provider pricing not found'], 400);
-    }
-
-    $originalPrice = $profile->pricing;
-    $finalPrice = $originalPrice;
-
-    if (!empty($validated['isPromoApplied']) && !empty($validated['promocode'])) {
-        $promocode = Promocode::where('code', $validated['promocode'])
-            ->where('is_active', true)
-            ->whereDate('valid_from', '<=', now())
-            ->whereDate('valid_to', '>=', now())
-            ->first();
-
-        if ($promocode) {
-            $specialityId = match ($roleName) {
-                'doctor' => $profile->doctor_speciality_id,
-                'lawyer' => $profile->lawyer_speciality_id,
-                default => $profile->common_speciality_id,
-            };
-            $specialityType = $roleName;
-
-            $isAssigned = $promocode->assignments()->where(function ($q) use ($provider, $specialityId, $specialityType) {
-                $q->where('user_id', $provider->id)
-                    ->orWhere(fn($q) => $q->where('role_id', $provider->role_id)->whereNull('speciality_id'))
-                    ->orWhere(fn($q) => $q->where('role_id', $provider->role_id)
-                        ->where('speciality_id', $specialityId)
-                        ->where('speciality_type', $specialityType));
-            })->exists();
-
-            if ($isAssigned) {
-                $discount = $promocode->discount_type === 'percent'
-                    ? ($originalPrice * $promocode->discount / 100)
-                    : min($promocode->discount, $originalPrice);
-                $finalPrice = $originalPrice - $discount;
-            }
-        }
-    }
-
-    if (($customer->wallet->balance ?? 0) < $finalPrice) {
-        return response()->json(['error' => 'Insufficient balance'], 400);
-    }
-
-    $day = strtolower($appointmentTime->format('l'));
-    $availability = ServiceProviderAvailability::where('provider_id', $provider->id)->where('day', $day)->first();
-
-    $slotTaken = Appointment::where('provider_id', $provider->id)
-        ->where('appointment_time', $appointmentTime)
-        ->where('status', '!=', 'cancelled')->exists();
-
-    if (!$availability || $slotTaken) {
-        return response()->json(['error' => 'Provider is not available on this time'], 400);
-    }
-
-    Appointment::where('customer_id', $customer->id)
-        ->where('provider_id', $provider->id)
-        ->where('appointment_time', $appointmentTime)
-        ->where('status', 'cancelled')->delete();
-
-    $appointment = Appointment::create([
-        'customer_id' => $customer->id,
-        'provider_id' => $provider->id,
-        'appointment_time' => $appointmentTime,
-        'status' => 'confirmed',
-        'price' => $finalPrice,
-    ]);
-
-    $customer->wallet->decrement('balance', $finalPrice);
-
-    return response()->json([
-        'message' => 'Appointment booked successfully',
-        'appointment' => $appointment
-    ]);
-}
-
-
-    public function sendToPhone($phone, $messageToSend)
-    {
-        $token = env('BD_BULK_SMS_API_TOKEN');
-        $to = $phone;
-        $message = $messageToSend;
-
-        $url = "https://api.bdbulksms.net/api.php?json";
-        $data = [
-            'to' => $to,
-            'message' => $message,
-            'token' => $token,
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($ch, CURLOPT_ENCODING, '');
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $smsResult = curl_exec($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($curlError) {
-            return response()->json([
-                'success' => false,
-                'message' => 'cURL Error: ' . $curlError,
-            ], 500);
-        }
-
-        $response = json_decode($smsResult, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid JSON response',
-                'raw_response' => $smsResult,
-            ], 500);
-        }
-
-        $statusMessages = [];
-        foreach ($response as $res) {
-            $status = $res['status'] ?? 'UNKNOWN';
-            $statusMsg = $res['statusmsg'] ?? 'No status message';
-            $statusMessages[] = [
-                'to' => $res['to'] ?? 'Unknown',
-                'status' => $status,
-                'message' => $statusMsg,
-            ];
-        }
-
-        return $statusMessages;
-    }
-
-    public function getAppointmentsByUser($uniqueUserId)
-    {
-
-        $user = User::findByUniqueUserId($uniqueUserId);
-
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        if (auth()->user()->id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-        $appointments = Appointment::where('customer_id', $user->id)
-            ->with('provider.role')
-            ->orderBy('appointment_time', 'asc')
-            ->get();
-
-
-
-        foreach ($appointments as $appointment) {
-            $provider = $appointment->provider;
-
-            if (!$provider || !$provider->role) {
-                continue;
-            }
-
-            $roleName = strtolower($provider->role->name);
-
-            if ($roleName === 'doctor') {
-                $provider->load([
-                    'doctorProfile',
-                    'doctorProfile.doctorType',
-                    'doctorProfile.doctorSpeciality',
-                    'doctorProfile.doctorTitle'
-                ]);
-            } elseif ($roleName === 'lawyer') {
-                $provider->load([
-                    'lawyerProfile',
-                    'lawyerProfile.lawyerSpeciality',
-                    'lawyerProfile.lawyerTitle'
-                ]);
-            } else {
-                $provider->load([
-                    'commonProfile',
-                    'commonProfile.uniqueIdentification',
-                    'commonProfile.commonSpeciality'
-                ]);
-            }
-        }
-
-        return response()->json(['appointments' => $appointments]);
-    }
-
-    public function upcomingAppointmentsForUser($uniqueUserId)
-    {
-
-        $user = User::findByUniqueUserId($uniqueUserId);
-
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        if (auth()->user()->id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-
-
-        $appointments = Appointment::where('customer_id', $user->id)
-            ->where('status', 'confirmed')
-            ->where('appointment_time', '>=', now('UTC'))
-            ->with('provider.role')
-            ->orderBy('appointment_time', 'asc')
-            ->get();
-
-
-        foreach ($appointments as $appointment) {
-            $provider = $appointment->provider;
-
-            if (!$provider || !$provider->role) {
-                continue;
-            }
-
-            $roleName = strtolower($provider->role->name);
-
-            if ($roleName === 'doctor') {
-                $provider->load([
-                    'doctorProfile',
-                    'doctorProfile.doctorType',
-                    'doctorProfile.doctorSpeciality',
-                    'doctorProfile.doctorTitle'
-                ]);
-            } elseif ($roleName === 'lawyer') {
-                $provider->load([
-                    'lawyerProfile',
-                    'lawyerProfile.lawyerSpeciality',
-                    'lawyerProfile.lawyerTitle'
-                ]);
-            } else {
-                $provider->load([
-                    'commonProfile',
-                    'commonProfile.uniqueIdentification',
-                    'commonProfile.commonSpeciality'
-                ]);
-            }
-        }
-
-        // Fix: apply metrics to actual provider object
-        $appointments->each(function ($appointment) {
-            $provider = $appointment->provider;
-
-            if ($provider) {
-                $completedAppointments = Appointment::where('provider_id', $provider->id)
-                    ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
-                    // ->distinct('customer_id')
-                    ->count('customer_id');
-
-                $provider->customers_count = $completedAppointments;
-                $provider->average_rating = $provider->averageRating();
-                $provider->review_count = $provider->reviewCount();
-                $provider->experience_count = rand(0, 9); // Replace with real logic if needed
-            }
-        });
-
-        return response()->json(['appointments' => $appointments]);
-    }
-
-
-
-    public function historyAppointmentsForUser($uniqueUserId)
+    public function upload(Request $request)
     {
 
 
-        $user = User::findByUniqueUserId($uniqueUserId);
-
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        if (auth()->user()->id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-
-        $appointments = Appointment::where('customer_id', $user->id)
-            ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
-            ->where('appointment_time', '<', now())
-            ->with('provider.role')
-            ->orderBy('appointment_time', 'asc')
-            ->get();
-
-
-        foreach ($appointments as $appointment) {
-            $provider = $appointment->provider;
-
-            if (!$provider || !$provider->role) {
-                continue;
-            }
-
-            $roleName = strtolower($provider->role->name);
-
-            if ($roleName === 'doctor') {
-                $provider->load([
-                    'doctorProfile',
-                    'doctorProfile.doctorType',
-                    'doctorProfile.doctorSpeciality',
-                    'doctorProfile.doctorTitle'
-                ]);
-            } elseif ($roleName === 'lawyer') {
-                $provider->load([
-                    'lawyerProfile',
-                    'lawyerProfile.lawyerSpeciality',
-                    'lawyerProfile.lawyerTitle'
-                ]);
-            } else {
-                $provider->load([
-                    'commonProfile',
-                    'commonProfile.uniqueIdentification',
-                    'commonProfile.commonSpeciality'
-                ]);
-            }
-        }
-
-        $appointments->each(function ($appointment) {
-            $provider = $appointment->provider;
-
-            if ($provider) {
-                $completedAppointments = Appointment::where('provider_id', $provider->id)
-                    ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
-                    // ->distinct('customer_id')
-                    ->count('customer_id');
-
-                $provider->customers_count = $completedAppointments;
-                $provider->average_rating = $provider->averageRating();
-                $provider->review_count = $provider->reviewCount();
-                $provider->experience_count = rand(0, 9); // Replace with real logic if needed
-            }
-        });
-
-        return response()->json(['appointments' => $appointments]);
-    }
-
-
-    public function getAppointmentsByProvider($uniqueUserId)
-    {
-
-        $provider = User::findByUniqueUserId($uniqueUserId);
-
-        if (!$provider) {
-            return response()->json(['error' => 'Provider not found'], 404);
-        }
-
-        if (auth()->user()->id !== $provider->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-        $appointments = Appointment::with('customer.customerProfile')->where('provider_id', $provider->id)->get();
-
-        return response()->json(['appointments' => $appointments]);
-    }
-
-    public function upcomingAppointmentsForProvider($uniqueUserId)
-    {
-
-        $provider = User::findByUniqueUserId($uniqueUserId);
-
-        if (!$provider) {
-            return response()->json(['error' => 'Provider not found'], 404);
-        }
-
-        if (auth()->user()->id !== $provider->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-
-        $appointments = Appointment::where('provider_id', $provider->id)
-            ->where('status', 'confirmed')
-            ->where('appointment_time', '>=', now())
-            ->with('customer.customerProfile')
-            ->orderBy('appointment_time', 'asc')
-            ->get();
-
-
-        // $appointments->each(function ($appointment) {
-        //     $providerId = $appointment->provider_id;
-
-        //     $provider = User::findOrFail($providerId);
-
-        //     if ($provider) {
-        //         $completedAppointments = Appointment::where('provider_id', $provider->id)
-        //             ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
-        //             ->distinct('customer_id')
-        //             ->count('customer_id');
-
-        //         $appointment->customers_count = $completedAppointments;
-        //         $appointment->average_rating = $provider->averageRating();
-        //         $appointment->review_count = $provider->reviewCount();
-        //         $appointment->experience_count = rand(0, 9); // Replace with real logic if needed
-        //     }
-        // });
-
-        $providerInfo=[];
-
-        $completedAppointments = Appointment::where('provider_id', $provider->id)
-                    ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
-                    // ->distinct('customer_id')
-                    ->count('customer_id');
-       
-        $providerInfo['customers_count'] = $completedAppointments;
-        $providerInfo['average_rating'] = $provider->averageRating();
-        $providerInfo['review_count'] = $provider->reviewCount();
-        $providerInfo['experience_count'] = rand(0, 9);
-        $providerInfo['average_rating'] = (float) ( $providerInfo['average_rating']?? 0.0);
-
-
-
-
-
-
-
-        return response()->json(['appointments' => $appointments, 'providerInfo'=> $providerInfo]);
-    }
-
-    public function historyAppointmentsForProvider($uniqueUserId)
-    {
-
-        $provider = User::findByUniqueUserId($uniqueUserId);
-
-        if (!$provider) {
-            return response()->json(['error' => 'Provider not found'], 404);
-        }
-
-        if (auth()->user()->id !== $provider->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-
-        $appointments = Appointment::where('provider_id', $provider->id)
-            ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
-            ->where('appointment_time', '<', now())
-            ->with('customer.customerProfile')
-            ->orderBy('appointment_time', 'asc')
-            ->get();
-
-
-        // $appointments->each(function ($appointment) {
-        //     $providerId = $appointment->provider_id;
-
-        //     $provider = User::findOrFail($providerId);
-
-        //     if ($provider) {
-        //         $completedAppointments = Appointment::where('provider_id', $provider->id)
-        //             ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
-        //             ->distinct('customer_id')
-        //             ->count('customer_id');
-
-        //         $appointment->customers_count = $completedAppointments;
-        //         $appointment->average_rating = $provider->averageRating();
-        //         $appointment->review_count = $provider->reviewCount();
-        //         $appointment->experience_count = rand(0, 9); // Replace with real logic if needed
-        //     }
-        // });
-
-        $providerInfo = [];
-
-        $completedAppointments = Appointment::where('provider_id', $provider->id)
-            ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
-            // ->distinct('customer_id')
-            ->count('customer_id');
-
-        $providerInfo['customers_count'] = $completedAppointments;
-        $providerInfo['average_rating'] = $provider->averageRating();
-        $providerInfo['review_count'] = $provider->reviewCount();
-        $providerInfo['experience_count'] = rand(0, 9);
-
-
-
-
-
-
-        return response()->json(['appointments' => $appointments, 'providerInfo' => $providerInfo]);
-
-        // return response()->json(['appointments' => $appointments]);
-    }
-
-    /**
-     * Update an appointment by its ID.
-     *
-     * @param Request $request
-     * @param int $appointmentId
-     * @return \Illuminate\Http\JsonResponse
-     */
-
-    // public function updateAppointment(Request $request, $appointmentId)
-    // {
-    //     $validated = $request->validate([
-    //         'appointment_time' => 'nullable|date_format:Y-m-d H:i:s', // If you want to change the appointment time
-    //         'status' => 'nullable|in:confirmed,cancelled,completed', // Three types of status: confirmed, cancelled, completed
-    //     ]);
-
-    //     
-    //     $appointment = Appointment::findOrFail($appointmentId);
-
-    //     // Step 1: Check if the appointment time is being updated
-    //     if (isset($validated['appointment_time'])) {
-    //         // Convert the new appointment time to a Carbon instance
-    //         $newAppointmentTime = Carbon::parse($validated['appointment_time']);
-
-    //         // Check if the new slot is available
-    //         $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
-    //             ->where('day', $newAppointmentTime->format('l')) // Get the day of the week (Monday, Tuesday, etc.)
-    //             ->first();
-
-    //         if ($availability) {
-    //             // Check if the new time slot is available (not booked)
-    //             $slot = AppointmentSlot::where('availability_id', $availability->id)
-    //                 ->where('slot_time', $newAppointmentTime->format('H:i'))
-    //                 ->first();
-
-    //             if ($slot && !$slot->is_booked) {
-    //                 // The slot is available, so update the appointment and mark the slot as booked
-    //                 $appointment->update(['appointment_time' => $validated['appointment_time']]);
-
-    //                 // Mark the new slot as booked
-    //                 $slot->update(['is_booked' => true]);
-
-    //                 // If the old slot is booked, mark it as available again (if applicable)
-    //                 if ($appointment->status == 'confirmed') {
-    //                     $oldSlot = AppointmentSlot::where('availability_id', $availability->id)
-    //                         ->where('slot_time', Carbon::parse($appointment->appointment_time)->format('H:i'))
-    //                         ->first();
-
-    //                     if ($oldSlot && $oldSlot->is_booked) {
-    //                         $oldSlot->update(['is_booked' => false]); // Mark the old slot as available again
-    //                     }
-    //                 }
-    //             } else {
-    //                 return response()->json(['error' => 'The selected time slot is not available.'], 400);
-    //             }
-    //         } else {
-    //             return response()->json(['error' => 'Provider is not available at the new time.'], 400);
-    //         }
-    //     }
-
-    //     // Step 2: Handle the status update
-    //     if (isset($validated['status'])) {
-    //         // Update the appointment status
-    //         $appointment->update(['status' => $validated['status']]);
-
-    //         // Handle logic based on the status change
-    //         switch ($validated['status']) {
-    //             case 'confirmed':
-    //                 // Mark the slot as booked when the appointment is confirmed
-    //                 $slot = AppointmentSlot::where('availability_id', $availability->id)
-    //                     ->where('slot_time', Carbon::parse($appointment->appointment_time)->format('H:i'))
-    //                     ->first();
-
-    //                 if ($slot) {
-    //                     $slot->update(['is_booked' => true]);
-    //                 }
-    //                 break;
-
-    //             case 'cancelled':
-    //                 // Mark the slot as available when the appointment is cancelled
-    //                 $slot = AppointmentSlot::where('availability_id', $availability->id)
-    //                     ->where('slot_time', Carbon::parse($appointment->appointment_time)->format('H:i'))
-    //                     ->first();
-
-    //                 if ($slot) {
-    //                     $slot->update(['is_booked' => false]);
-    //                 }
-    //                 break;
-
-    //             case 'completed':
-
-    //                 break;
-    //         }
-    //     }
-
-    //     return response()->json(['message' => 'Appointment updated successfully', 'appointment' => $appointment]);
-    // }
-
-
-    /**
-     * Delete an appointment by its ID.
-     *
-     * @param int $appointmentId
-     * @return \Illuminate\Http\JsonResponse
-     */
-    // public function deleteAppointment($appointmentId)
-    // {
-    //     
-    //     $appointment = Appointment::findOrFail($appointmentId);
-
-    //     // Check if the authenticated user is either the provider, the customer, or a super admin
-    //     // if ($appointment->customer_id !== auth()->user()->id && $appointment->provider_id !== auth()->user()->id && !auth()->user()->hasRole('super admin')) {
-    //     //     return response()->json(['error' => 'Unauthorized to delete this appointment'], 403);
-    //     // }
-
-    //     // Delete the appointment
-    //     $appointment->delete();
-
-    //     return response()->json(['message' => 'Appointment deleted successfully']);
-    // }
-
-    public function deleteAppointment($appointmentId)
-    {
-
-        $appointment = Appointment::findOrFail($appointmentId);
-
-
-        if (!$appointment->is_money_back) {
-
-            $wallet = $appointment->customer->wallet;
-            if ($wallet) {
-                $wallet->increment('balance', $appointment->price);
-            }
-
-            // // Update is_money_back to true in the appointment table
-            // $appointment->is_money_back = true;
-            // $appointment->save();  // Save the change
-        }
-
-
-        $appointment->delete();
-
-        return response()->json(['message' => 'Appointment deleted successfully']);
-    }
-
-
-
-    // public function cancelAppointmentWithinTime($appointmentId)
-    // {
-    //     $appointment = Appointment::findOrFail($appointmentId);
-
-    //     // Check if the appointment is less than 24 hours away
-    //     if (now()->diffInHours($appointment->appointment_time, false) < 24) {
-    //         return response()->json([
-    //             'error' => 'Appointment cannot be cancelled now.'
-    //         ], 403);
-    //     }
-
-    //     // Update the status to 'cancelled'
-    //     $appointment->status = 'cancelled';
-    //     $appointment->save();
-
-    //     return response()->json(['message' => 'Appointment cancelled successfully']);
-    // }
-
-    public function cancelAppointmentWithinTime($appointmentId)
-    {
-        $appointment = Appointment::with(['customer.wallet'])->findOrFail($appointmentId);
-
-        if ($appointment->customer_id != auth()->user()->id) {
-            return response()->json(['error' => 'Unauthorized access'], 403);
-        }
-
-        if (!$appointment) {
-            return response()->json(['error' => 'Appointment not found'], 404);
-        }
-
-
-
-
-        if (now('UTC')->diffInHours($appointment->appointment_time, false) < 24) {
-            return response()->json([
-                'error' => 'Appointment cannot be cancelled now.'
-            ], 403);
-        }
-
-
-        if ($appointment->status === 'cancelled') {
-            return response()->json([
-                'error' => 'Appointment is already cancelled.'
-            ], 400);
-        }
-
-
-        $wallet = $appointment->customer->wallet;
-        if ($wallet) {
-            $wallet->increment('balance', $appointment->price);
-        }
-
-
-        $appointment->update([
-            'status' => 'cancelled',
-            'is_money_back' => true,
-            'is_cancel_by_user' => true,
-        ]);
-
-        return response()->json([
-            'message' => 'Appointment cancelled and money refunded successfully.'
-        ]);
-    }
-
-
-
-   public function updateAppointment(Request $request, $appointmentId)
-{
-    $validated = $request->validate([
-        'appointment_time' => 'sometimes|nullable|date_format:Y-m-d H:i:s',
-        'status' => 'sometimes|nullable|in:confirmed,cancelled,completed',
-    ]);
-
-    $appointment = Appointment::findOrFail($appointmentId);
-
-    if ($appointment->customer_id != auth()->user()->id) {
-        return response()->json(['error' => 'Unauthorized access'], 403);
-    }
-
-    // Only allow updates to confirmed appointments
-    if ($appointment->status !== 'confirmed') {
-        return response()->json(['error' => 'Only confirmed appointments can be updated'], 400);
-    }
-
-    // Update appointment time
-    if (!empty($validated['appointment_time'])) {
-        // ✅ Parse in UTC
-        $newTime = Carbon::createFromFormat('Y-m-d H:i:s', $validated['appointment_time'], 'UTC');
-        $nowUtc = Carbon::now('UTC');
-
-        // ✅ Ensure new appointment time is in the future (in UTC)
-        if ($newTime->lessThanOrEqualTo($nowUtc)) {
-            return response()->json(['error' => 'Appointment time must be in the future'], 400);
-        }
-
-        $day = strtolower($newTime->format('l'));
-
-        $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
-            ->where('day', $day)
-            ->first();
-
-        if (!$availability) {
-            return response()->json(['error' => 'Provider is not available on this day'], 400);
-        }
-
-        // ✅ Check if slot is already taken by another appointment
-        $slotTaken = Appointment::where('provider_id', $appointment->provider_id)
-            ->where('appointment_time', $newTime)
-            ->where('status', '!=', 'cancelled')
-            ->where('id', '!=', $appointment->id)
-            ->exists();
-
-        if ($slotTaken) {
-            return response()->json(['error' => 'The selected time slot is already taken'], 400);
-        }
-
-        // ✅ Save UTC time
-        $appointment->appointment_time = $newTime;
-    }
-
-    // Update status if provided
-    if (!empty($validated['status'])) {
-        switch ($validated['status']) {
-            case 'confirmed':
-            case 'completed':
-                $appointment->status = $validated['status'];
-                break;
-
-            case 'cancelled':
-                $appointment->delete();
-                return response()->json(['message' => 'Appointment cancelled successfully']);
-        }
-    }
-
-    $appointment->save();
-
-    return response()->json([
-        'message' => 'Appointment updated successfully',
-        'appointment' => $appointment
-    ]);
-}
-
-
-
-    /**
-     * Update the status of an appointment by its ID.
-     *
-     * @param Request $request
-     * @param int $appointmentId
-     * @return \Illuminate\Http\JsonResponse
-     */
-
-    // public function updateAppointmentStatus(Request $request, $appointmentId)
-    // {
-    //     $validated = $request->validate([
-
-    //         'status' => 'required|in:pending,confirmed,cancelled,completed', // Three types of status: pending,confirmed, cancelled, completed
-    //     ]);
-
-
-    //     
-    //     $appointment = Appointment::findOrFail($appointmentId);
-
-    //     $customer = $appointment->customer;
-
-    //     // Step 1: Check if the appointment time is being updated
-
-
-    //     // Step 2: Handle the status update
-    //     if (isset($validated['status'])) {
-    //         // Update the appointment status
-
-
-    //         // Handle logic based on the status change
-    //         $appointment->update(['status' => $validated['status']]);
-    //         // $message = 'Your appointment status has been updated to ' . $validated['status'] . '.';
-    //         // $this->sendToPhone($customer->phone, $message);
-    //     }
-
-    //     return response()->json(['message' => 'Appointment Status updated successfully', 'appointment' => $appointment]);
-    // }
-
-    public function updateAppointmentStatus(Request $request, $appointmentId)
-    {
+        // Validate the incoming request
         $validated = $request->validate([
-            'status' => 'required|in:pending,confirmed,cancelled,completed',
+            'document' => 'required|mimes:pdf,jpg,png,docx|max:2048', // Validate file type and size
+            'type' => 'required|in:verification,public,private', // Document type
+            // 'created_by' => 'required_if:type,private|nullable|exists:users,id',
+            'created_for' => 'required_if:type,private|nullable|exists:users,id',
+            'appointment_id' => 'nullable|exists:appointments,id',
+
         ]);
 
+        // Get the authenticated user
+        $user = $request->user();
 
-        $appointment = Appointment::findOrFail($appointmentId);
-
-        if (!$appointment) {
-            return response()->json(['error' => 'Appointment not found'], 404);
-        }
-
-
-        if ($appointment->is_cancel_by_user) {
-            return response()->json([
-                'message' => 'This appointment was cancelled by the user. No action can be performed.'
-            ], 403);
-        }
+        // Generate a unique file name
+        $documentName = time() . '_' . $user->id . '_' . uniqid() . '.' . $request->document->getClientOriginalExtension();
 
 
-        if ($validated['status'] === 'cancelled') {
+        $request->document->move(public_path('images/documents'), $documentName);
 
+        // Generate full URL
+        $documentUrl = asset('images/documents/' . $documentName); // or asset('images/' . $documentName)
 
-            if (!$appointment->is_money_back) {
-
-                $wallet = $appointment->customer->wallet;
-                if ($wallet) {
-                    $wallet->increment('balance', $appointment->price);
-                }
-
-
-                $appointment->is_money_back = true;
-                $appointment->save();
-            }
-
-            $appointment->update(['status' => 'cancelled']);
-        } else {
-
-            $appointment->update(['status' => $validated['status']]);
-        }
-
-        return response()->json([
-            'message' => 'Appointment Status updated successfully',
-            'appointment' => $appointment
+        // Create a new document record in the database
+        $document = Document::create([
+            'user_id' => $user->id,
+            'document_link' => $documentUrl,
+            'type' => $validated['type'],
         ]);
+
+        if ($validated['type'] === 'private') {
+            PrivateDocument::create([
+                'document_id' => $document->id,
+                'created_by' => $user->id,
+                'created_for' => $validated['created_for'],
+                'appointment_id' => $validated['appointment_id'] ?? null,
+            ]);
+        }
+
+
+        return response()->json(['message' => 'Document uploaded successfully', 'document' => $document], 201);
     }
 
 
+    public function uploadMultiple(Request $request)
+    {
 
 
-    // public function checkAvailability(Request $request)
-    // {
-    //     // Validate input
-    //     $validated = $request->validate([
-    //         'provider_unique_user_id' => 'required|exists:users,unique_user_id',
-    //         'appointment_date' => 'required|date_format:Y-m-d',
-    //     ]);
+        // Validate the incoming request for multiple files and related fields
+        $validated = $request->validate([
+            'document' => 'required|array',
+            'document.*' => 'required|mimes:pdf,jpg,png,docx|max:2048', // each file
+            'type' => 'required|in:verification,public,private', // Document type
+            // For private, these fields are required for each document (if applicable)
+            // 'created_by' => 'required_if:type,private|nullable|exists:users,id',
+            'created_for' => 'required_if:type,private|nullable|exists:users,id',
+            'appointment_id' => 'nullable|exists:appointments,id',
+        ]);
 
-    //     $provider = User::where('unique_user_id', $validated['provider_unique_user_id'])->first();
+        $user = $request->user();
 
-    //     if (!$provider) {
-    //         return response()->json(['error' => 'Provider not found'], 404);
-    //     }
+        $uploadedDocuments = [];
 
-    //     // Get the provider's availability for the selected date
-    //     $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
+        foreach ($request->file('document') as $file) {
+            // Generate unique file name
+            $documentName = time() . '_' . $user->id . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
-    //         ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))
-    //         ->where('availability_type', 'appointment')
+            // Move file to storage folder
+            $file->move(public_path('images/documents'), $documentName);
 
-    //         ->get();
+            // Generate URL
+            $documentUrl = asset('images/documents/' . $documentName);
 
-    //     if ($availabilities->isEmpty()) {
-    //         return response()->json(['error' => 'Provider is not available on this date'], 400);
-    //     }
+            // Create document record
+            $document = Document::create([
+                'user_id' => $user->id,
+                'document_link' => $documentUrl,
+                'type' => $validated['type'],
+            ]);
 
-    //     // Generate time slots for the available time range for each availability record
-    //     $slotsWithStatus = [];
+            // If private, create private_document record
+            if ($validated['type'] === 'private') {
+                PrivateDocument::create([
+                    'document_id' => $document->id,
+                    'created_by' => $user->id,
+                    'created_for' => $validated['created_for'],
+                    'appointment_id' => $validated['appointment_id'] ?? null,
+                ]);
+            }
 
-    //     foreach ($availabilities as $availability) {
-    //         $timeSlots = $this->generateTimeSlots(
-    //             $validated['appointment_date'],
-    //             $availability->start_time,
-    //             $availability->end_time,
-    //             $availability->slot_duration
-    //         );
-
-    //         // Check the availability of each slot and mark it as booked or available
-    //         foreach ($timeSlots as $slot) {
-    //             $isBooked = Appointment::where('provider_id', $provider->id)
-    //                 ->where('appointment_time', $slot)
-    //                 ->exists();
-
-    //             $slotsWithStatus[] = [
-    //                 'slot' => $slot,
-    //                 'is_booked' => $isBooked,
-    //             ];
-    //         }
-    //     }
-
-    //     return response()->json([
-    //         'available_slots' => $slotsWithStatus
-    //     ]);
-    // }
-
-
-
-    // public function checkAvailability($provider_unique_user_id, $appointment_date)
-    // {
-
-    //     $validated = [
-    //         'provider_unique_user_id' => $provider_unique_user_id,
-    //         'appointment_date' => $appointment_date,
-    //     ];
-
-
-    //     $provider = User::where('unique_user_id', $validated['provider_unique_user_id'])->first();
-
-    //     if (!$provider) {
-    //         return response()->json(['error' => 'Provider not found'], 404);
-    //     }
-
-
-    //     $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
-    //         ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))
-    //         ->where('availability_type', 'appointment')
-    //         ->get();
-
-    //     if ($availabilities->isEmpty()) {
-    //         return response()->json(['error' => 'Provider is not available on this date'], 400);
-    //     }
-
-    //     $slotsWithStatus = [];
-
-    //     foreach ($availabilities as $availability) {
-    //         $timeSlots = $this->generateTimeSlots(
-    //             $validated['appointment_date'],
-    //             $availability->start_time,
-    //             $availability->end_time,
-    //             $availability->slot_duration
-    //         );
-
-
-    //         foreach ($timeSlots as $slot) {
-    //             $isBooked = Appointment::where('provider_id', $provider->id)
-    //                 ->where('appointment_time', $slot)
-    //                 ->where('status', '!=', 'cancelled')
-    //                 ->exists();
-
-    //             $slotsWithStatus[] = [
-    //                 'slot' => $slot,
-    //                 'is_booked' => $isBooked,
-    //             ];
-    //         }
-    //     }
-
-    //     return response()->json([
-    //         'available_slots' => $slotsWithStatus
-    //     ]);
-    // }
-
-   public function checkAvailability($provider_unique_user_id, $appointment_date)
-{
-    try {
-        $validated = [
-            'provider_unique_user_id' => $provider_unique_user_id,
-            'appointment_date' => $appointment_date,
-        ];
-
-        $provider = User::where('unique_user_id', $validated['provider_unique_user_id'])->first();
-
-        if (!$provider) {
-            return response()->json(['error' => 'Provider not found'], 404);
+            $uploadedDocuments[] = $document;
         }
 
-        $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
-            ->where('day', strtolower(Carbon::parse($validated['appointment_date'])->format('l')))
-            ->where('availability_type', 'appointment')
+        return response()->json([
+            'message' => 'Documents uploaded successfully',
+            'documents' => $uploadedDocuments,
+        ], 201);
+    }
+
+
+    public function getVerificationDocuments($uniqueId)
+    {
+
+        $user = User::findByUniqueUserId($uniqueId);
+
+        // Get all verification documents for the user
+        $documents = Document::where('user_id', $user->id)
+            ->where('type', 'verification')
             ->get();
 
-        if ($availabilities->isEmpty()) {
-            return response()->json(['error' => 'Provider is not available on this date'], 400);
-        }
-
-        $slotsWithStatus = [];
-
-        foreach ($availabilities as $availability) {
-
-            $timeSlots = $this->generateTimeSlots(
-                $validated['appointment_date'],
-                $availability->start_time,
-                $availability->end_time,
-                env('SLOT_DURATION', 60) // Default to 60 if not set
-            );
-
-            foreach ($timeSlots as $slot) {
-                $isBooked = Appointment::where('provider_id', $provider->id)
-                    ->where('appointment_time', $slot)
-                    ->where('status', '!=', 'cancelled')
-                    ->exists();
-
-                $slotUtc = Carbon::parse($slot, env('CUSTOMER_TIMEZONE', 'UTC'))->toISOString();
-
-                $slotsWithStatus[] = [
-                    'slot' => $slotUtc,
-                    'is_booked' => $isBooked,
-                ];
-            }
-        }
-
-        return response()->json([
-            'slot_duration' => env('SLOT_DURATION', 60),
-            'available_slots' => $slotsWithStatus
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Something went wrong',
-            'message' => $e->getMessage(),
-            'trace' => config('app.debug') ? $e->getTrace() : null
-        ], 500);
+        return response()->json(['documents' => $documents]);
     }
-}
 
-
-
-
-
-
-
-
-
-    // Helper method to generate time slots based on provider's availability
-    protected function generateTimeSlots($date, $startTime, $endTime, $slotDuration)
+    public function getPublicDocuments($uniqueId)
     {
-        $start = Carbon::createFromFormat('Y-m-d H:i:s', "$date $startTime");
-        $end = Carbon::createFromFormat('Y-m-d H:i:s', "$date $endTime");
+        $user = User::findByUniqueUserId($uniqueId);
+        // Get all verification documents for the user
+        $documents = Document::where('user_id', $user->id)
+            ->where('type', 'public')
+            ->get();
 
-        $slots = [];
+        return response()->json(['documents' => $documents]);
+    }
 
-        while ($start->lessThan($end)) {
-            $slots[] = $start->format('Y-m-d H:i:s');
-            $start->addMinutes($slotDuration);
+    public function getDocumentsByAppointment($id)
+    {
+        // Get all private documents linked to an appointment
+        $documents = PrivateDocument::with('document')->where('appointment_id', $id)->get();
+
+        return response()->json(['documents' => $documents]);
+    }
+
+    public function getPrivateDocumentsForCustomer($customerUniqueId, $providerUniqueId)
+    {
+        // Get all private documents created for the customer by the provider
+        $customer = User::findByUniqueUserId($customerUniqueId);
+        $provider = User::findByUniqueUserId($providerUniqueId);
+
+
+        $documents = PrivateDocument::with('document')->where('created_for', $customer->id)
+            ->where('created_by', $provider->id)
+            ->get();
+
+        return response()->json(['documents' => $documents]);
+    }
+
+    public function getPrivateDocumentsForProvider($providerUniqueId, $customerUniqueId)
+    {
+        // Get all private documents created by the customer for the provider
+        $customer = User::findByUniqueUserId($customerUniqueId);
+        $provider = User::findByUniqueUserId($providerUniqueId);
+        $documents = PrivateDocument::with('document')->where('created_by', $customer->id)
+            ->where('created_for', $provider->id)
+            ->get();
+
+        return response()->json(['documents' => $documents]);
+    }
+
+
+    // public function listProviderMembers(Request $request, $roleId)
+    // {
+    //     $customerId = $request->user()->id;
+
+    //     // Get user IDs of members who have private documents with customer (either direction)
+    //     $memberIdsCreatedFor = PrivateDocument::where('created_by', $customerId)
+    //         ->pluck('created_for')->toArray();
+
+    //     $memberIdsCreatedBy = PrivateDocument::where('created_for', $customerId)
+    //         ->pluck('created_by')->toArray();
+
+    //     // Merge and unique, exclude the customer themselves
+    //     $memberIds = collect(array_merge($memberIdsCreatedBy, $memberIdsCreatedFor))
+    //         ->unique()
+    //         ->filter(fn($id) => $id != $customerId)
+    //         ->values();
+
+    //     // Filter members by matching role ID
+    //     $members = User::with('role') // eager load role here
+    //         ->whereIn('id', $memberIds)
+    //         ->where('role_id', $roleId)
+    //         ->get();
+
+
+
+    //     $members->each(function ($member) {
+    //         $roleName = strtolower($member->role->name);
+
+    //         if ($roleName === 'doctor') {
+    //             $member->load(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle']);
+    //         } elseif ($roleName === 'lawyer') {
+    //             $member->load(['lawyerProfile', 'lawyerProfile.lawyerSpeciality', 'lawyerProfile.lawyerTitle' ]);
+    //         } else {
+
+    //             $member->load(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality']);
+    //         }
+    //     });
+
+
+
+    //     return response()->json($members);
+    // }
+
+
+    public function listProviderMembers(Request $request, $roleId)
+    {
+        $customerId = $request->user()->id;
+
+        // Get user IDs of members who have private documents with customer (either direction)
+        $memberIdsCreatedFor = PrivateDocument::where('created_by', $customerId)
+            ->pluck('created_for')->toArray();
+
+        $memberIdsCreatedBy = PrivateDocument::where('created_for', $customerId)
+            ->pluck('created_by')->toArray();
+
+        // Merge and unique, exclude the customer themselves
+        $memberIds = collect(array_merge($memberIdsCreatedBy, $memberIdsCreatedFor))
+            ->unique()
+            ->filter(fn($id) => $id != $customerId)
+            ->values();
+
+        // Fetch members and their appointments as provider
+        $members = User::with([
+            'role',
+            'appointmentsAsProvider' => function ($query) use ($customerId) {
+                $query->where('customer_id', $customerId);
+            }
+        ])
+            ->whereIn('id', $memberIds)
+            ->where('role_id', $roleId)
+            ->get();
+
+        // Load additional profiles based on role
+        $members->each(function ($member) {
+            $roleName = strtolower($member->role->name);
+
+            // Add appointments as provider
+            $member->appointments = $member->appointmentsAsProvider;
+
+            unset($member->appointmentsAsProvider);
+
+            if ($roleName === 'doctor') {
+                $member->load(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle']);
+            } elseif ($roleName === 'lawyer') {
+                $member->load(['lawyerProfile', 'lawyerProfile.lawyerSpeciality', 'lawyerProfile.lawyerTitle']);
+            } else {
+                $member->load(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality']);
+            }
+        });
+
+        return response()->json($members);
+    }
+
+
+    public function getDocumentsBetweenUsers(Request $request, $providerUniqueId)
+    {
+        $customerId = $request->user()->id;
+
+        $providerId = optional(User::findByUniqueUserId($providerUniqueId))->id;
+
+        // Documents uploaded by customer for provider
+        $providedByCustomer = Document::with('privateDocument')
+            ->whereHas('privateDocument', function ($query) use ($customerId, $providerId) {
+                $query->where('created_by', $customerId)
+                    ->where('created_for', $providerId);
+            })
+            ->get();
+
+        // Documents uploaded by provider for customer
+        $providedByProvider = Document::with('privateDocument')
+            ->whereHas('privateDocument', function ($query) use ($customerId, $providerId) {
+                $query->where('created_by', $providerId)
+                    ->where('created_for', $customerId);
+            })
+            ->get();
+
+        return response()->json([
+            'provided_by_you' => $providedByCustomer,
+            'provided_by_provider' => $providedByProvider,
+        ]);
+    }
+
+
+
+    public function downloadDocument($documentId)
+    {
+        $document = Document::findOrFail($documentId);
+
+        // Extract relative path from URL stored in document_link
+        $relativePath = str_replace(asset('/'), '', $document->document_link);
+
+        $fullPath = public_path($relativePath);
+
+        if (!file_exists($fullPath)) {
+            return response()->json(['message' => 'File not found.'], 404);
         }
 
-        return $slots;
+        return response()->download($fullPath, basename($fullPath));
+    }
+
+
+    public function downloadAllDocuments(Request $request, $providerId)
+    {
+        $customerId = $request->user()->id;
+
+        // Get all document records related to the customer and provider (both directions)
+        $documents = Document::whereHas('privateDocument', function ($query) use ($customerId, $providerId) {
+            $query->where(function ($q) use ($customerId, $providerId) {
+                $q->where('created_by', $customerId)
+                    ->where('created_for', $providerId);
+            })->orWhere(function ($q) use ($customerId, $providerId) {
+                $q->where('created_by', $providerId)
+                    ->where('created_for', $customerId);
+            });
+        })
+            ->get();
+
+        if ($documents->isEmpty()) {
+            return response()->json(['message' => 'No documents found'], 404);
+        }
+
+        // Create a temp zip file
+        $zipFileName = 'documents_' . time() . '.zip';
+        $zipFilePath = storage_path('app/public/' . $zipFileName);
+
+        $zip = new ZipArchive;
+        if ($zip->open($zipFilePath, ZipArchive::CREATE) === TRUE) {
+            foreach ($documents as $document) {
+                // Extract filename from your stored URL, assuming it's like 'http://yourapp.com/images/documents/time_userid.ext'
+                $documentUrl = $document->document_link;
+
+                // Parse URL path and extract the filename
+                $path = parse_url($documentUrl, PHP_URL_PATH);  // e.g. /images/documents/time_userid.ext
+                $filename = basename($path);                    // e.g. time_userid.ext
+
+                // Full path on server (public/images/documents/...)
+                $fullPath = public_path('images/documents/' . $filename);
+
+                if (file_exists($fullPath)) {
+                    $zip->addFile($fullPath, $filename);
+                }
+            }
+            $zip->close();
+        } else {
+            return response()->json(['message' => 'Failed to create ZIP file'], 500);
+        }
+
+        // Return ZIP as download response and delete file after sending
+        return response()->download($zipFilePath)->deleteFileAfterSend(true);
     }
 }
