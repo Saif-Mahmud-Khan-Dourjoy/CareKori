@@ -119,7 +119,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/common-provider-profile', [CommonProvider::class, 'show']);
 
         Route::post('/common-provider/profile/image', [CommonProvider::class, 'addProfileImage']);
-        Route::post('/update/common-provider/profile/image', [CommonProvider::class, 'updateProfileImage']);
+        Route::put('/update/common-provider/profile/image', [CommonProvider::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/common-provider-profile/pricing', [CommonProvider::class, 'updatePricing']);
@@ -248,7 +248,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/doctor-profile', [DoctorProfileCOntroller::class, 'show']);
 
         Route::post('/doctor/profile/image', [DoctorProfileCOntroller::class, 'addProfileImage']);
-        Route::post('/update/doctor/profile/image', [DoctorProfileCOntroller::class, 'updateProfileImage']);
+        Route::put('/update/doctor/profile/image', [DoctorProfileCOntroller::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/doctor-profile/pricing', [DoctorProfileController::class, 'updatePricing']);
@@ -263,7 +263,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/lawyer-profile', [LawyerProfileController::class, 'show']);
 
         Route::post('/lawyer/profile/image', [LawyerProfileController::class, 'addProfileImage']);
-        Route::post('/update/lawyer/profile/image', [LawyerProfileController::class, 'updateProfileImage']);
+        Route::put('/update/lawyer/profile/image', [LawyerProfileController::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/lawyer-profile/pricing', [LawyerProfileController::class, 'updatePricing']);

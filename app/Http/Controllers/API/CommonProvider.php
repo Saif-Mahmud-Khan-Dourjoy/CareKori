@@ -29,12 +29,49 @@ class CommonProvider extends Controller
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'unique_identification_no' => 'required|string|max:255',
             'other_data' => 'nullable',  // Optional other data field (JSON or text)
+            'address' => 'nullable|string|max:500',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
         ]);
 
         // Update the user's basic details (skip password update if not provided)
-        if (isset($validated['phone'])) {
-            $user->phone = $validated['phone'];
+        // if (isset($validated['phone'])) {
+        //     $user->phone = $validated['phone'];
+        // }
+
+        if ($request->hasFile('avatar')) {
+
+            // Delete the previous avatar if it exists
+            if ($user->commonProfile->avatar) {
+                // Convert full URL to relative path
+                // $relativePath = str_replace(asset('') . '/', '', $user->commonProfile->avatar);
+                $relativePath = str_replace(
+                    asset(''),
+                    '',
+                    $user->commonProfile->avatar
+                );
+
+
+
+
+                // return response()->json($relativePath);
+
+                // Check if the file exists and delete it
+                if (File::exists(public_path($relativePath))) {
+
+                    File::delete(public_path($relativePath));
+                }
+            }
+
+            // Generate a unique file name for the new avatar
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            // Move the uploaded image to the 'public/images/common' directory
+            $request->avatar->move(public_path('images/{$user->role->name}'), $imageName);
+
+            // Store the full URL of the uploaded image
+            $validated['avatar'] = asset('images/{$user->role->name}/' . $imageName); // Add avatar URL to the validated data
         }
+
 
         if (isset($validated['name'])) {
             $user->name = $validated['name'];
@@ -57,6 +94,8 @@ class CommonProvider extends Controller
         $active_from = $validated['active_from'] ?? $user->commonProfile->active_from;
         $active_to = $validated['active_to'] ?? $user->commonProfile->active_to;
         $unique_identification_no = $validated['unique_identification_no'] ?? $user->commonProfile->uniqueIdentification->unique_identification_no;
+        $address = $validated['address'] ?? $user->commonProfile->address;
+        $avatar = $validated['avatar'] ?? $user->commonProfile->avatar;
 
         // Process `other_data` to ensure it's in JSON format
         $otherData = $validated['other_data'] ?? $user->commonProfile->uniqueIdentification->other_data;
@@ -87,6 +126,8 @@ class CommonProvider extends Controller
                 'identification_no' => $identification_no,
                 'active_from' => $active_from,
                 'active_to' => $active_to,
+                'address'=>$address,
+                'avatar'=>$avatar,
             ]);
         }
 

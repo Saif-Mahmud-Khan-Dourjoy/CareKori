@@ -31,11 +31,47 @@ class LawyerProfileController extends Controller
             'bar_registration_no' => 'required|string|max:255',
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
+            'address' => 'nullable|string|max:500',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
         ]);
 
         // Update the user's attributes
-        if (isset($validated['phone'])) {
-            $user->phone = $validated['phone'];
+        // if (isset($validated['phone'])) {
+        //     $user->phone = $validated['phone'];
+        // }
+
+        if ($request->hasFile('avatar')) {
+
+            // Delete the previous avatar if it exists
+            if ($user->doctorProfile->avatar) {
+                // Convert full URL to relative path
+                // $relativePath = str_replace(asset('') . '/', '', $user->doctorProfile->avatar);
+                $relativePath = str_replace(
+                    asset(''),
+                    '',
+                    $user->doctorProfile->avatar
+                );
+
+
+
+
+                // return response()->json($relativePath);
+
+                // Check if the file exists and delete it
+                if (File::exists(public_path($relativePath))) {
+
+                    File::delete(public_path($relativePath));
+                }
+            }
+
+            // Generate a unique file name for the new avatar
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            // Move the uploaded image to the 'public/images/doctor' directory
+            $request->avatar->move(public_path('images/doctor'), $imageName);
+
+            // Store the full URL of the uploaded image
+            $validated['avatar'] = asset('images/doctor/' . $imageName); // Add avatar URL to the validated data
         }
 
         if (isset($validated['name'])) {
