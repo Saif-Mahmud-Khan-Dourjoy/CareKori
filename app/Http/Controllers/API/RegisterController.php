@@ -415,3 +415,4 @@ class RegisterController extends Controller
         return rand(100000000, 999999999);  // Example: Generates a random 9-digit number
     }
 }
+ 

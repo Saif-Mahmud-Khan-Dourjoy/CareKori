@@ -29,6 +29,8 @@ use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\UnAuthenticatedController;
+use App\Http\Controllers\ComplaintController;
+use App\Models\Complaint;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +67,12 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
         Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
         Route::get('/appointments/user/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForUser']);
+
+
+        Route::post('/complain-store', [ComplaintController::class, 'store']);
+        Route::get('/user/provider/complain/{providerUniqueId}', [ComplaintController::class, 'getUserProviderComplaints']);
+
+
 
 
 
@@ -230,6 +238,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         // For role wised add banner 
         Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
 
+        Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
     });
 
 
@@ -306,6 +315,10 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     // Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
 
     Route::post('update-password', [LoginController::class, 'updatePassword']);
+
+
+
+    Route::get('complain/provider/{providerUniqueId}', [ComplaintController::class, 'getComplaintsForProvider']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
