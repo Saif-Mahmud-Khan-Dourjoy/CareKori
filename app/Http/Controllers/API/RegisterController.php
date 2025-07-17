@@ -15,37 +15,40 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class RegisterController extends Controller
 {
     public function register(Request $request)
     {
 
-        $request->validate([
-            'phone' => 'required|regex:/^01[3-9][0-9]{8}$/|unique:users,phone',
-            'password' => 'required|min:6',
-            'role' => 'required',
-            'name' => 'required|string',
-            'email' => 'nullable|email|unique:users,email',
-            // Add validation rules for role-specific fields
-        ]);
-
-
-        $otp = OtpCode::where('phone', $request->phone)
-            ->where('is_verified', true)
-            // ->where('expires_at', '>', now())
-            ->first();
-
-        if (!$otp) {
-            return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
-        }
-
-
-
-        DB::beginTransaction();
 
         try {
+            $request->validate([
+                'phone' => 'required|regex:/^01[3-9][0-9]{8}$/|unique:users,phone',
+                'password' => 'required|min:6',
+                'role' => 'required',
+                'name' => 'required|string',
+                'email' => 'nullable|email|unique:users,email',
+                // Add validation rules for role-specific fields
+            ]);
+
+
+            $otp = OtpCode::where('phone', $request->phone)
+                ->where('is_verified', true)
+                // ->where('expires_at', '>', now())
+                ->first();
+
+            if (!$otp) {
+                return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
+            }
+
+
+            DB::beginTransaction();
+
+
+
             $uniqueUserId = $this->generateUniqueUserId();
 
 
@@ -61,7 +64,7 @@ class RegisterController extends Controller
             ]);
 
             $this->createProfile($user, $request);
-            if (!in_array($user->role->name, ['customer', 'super admin', 'moderator'])){
+            if (!in_array($user->role->name, ['customer', 'super admin', 'moderator'])) {
                 $this->createAvailability($user, $request);
             }
 
@@ -425,21 +428,47 @@ class RegisterController extends Controller
 
 
 
-    private function createAvailability(User $user, Request $request) {
+    private function createAvailability(User $user, Request $request)
+    {
+        // Decode the JSON string
+        $availabilities = json_decode($request->input('availabilities'), true);
 
-        $validated = $request->validate([
-            'availabilities' => 'required|array',
-            'availabilities.*.availability_type' => 'required|in:appointment,instant',
-            'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-            // 'availabilities.*.slot_duration' => 'required|integer|min:5|max:60',
-            'availabilities.*.time_slots' => 'required|array',
-            'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
-            'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
-        ]);
+        // Validate the decoded availabilities array
+        $validator = Validator::make(
+            ['availabilities' => $availabilities], // Wrap the availabilities into an array for validation
+            [
+                'availabilities' => 'required|array',
+                'availabilities.*.availability_type' => 'required|in:appointment,instant',
+                'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                // 'availabilities.*.time_slots' => 'required|array',
+                'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
+                'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
+            ],
+            [
+                // Custom messages
+                'availabilities.required' => 'Availabilities field is required.',
+                'availabilities.array' => 'Availabilities should be an array.',
+                'availabilities.*.availability_type.required' => 'Each availability block must have an availability type.',
+                'availabilities.*.availability_type.in' => 'Availability type must be either appointment or instant.',
+                'availabilities.*.day.required' => 'Each availability block must have a day.',
+                'availabilities.*.day.in' => 'Day must be one of the following: monday, tuesday, wednesday, thursday, friday, saturday, sunday.',
+                'availabilities.*.time_slots.*.start_time.required' => 'Start time is required for each time slot.',
+                'availabilities.*.time_slots.*.start_time.date_format' => 'Start time must be in the format H:i.',
+                'availabilities.*.time_slots.*.end_time.required' => 'End time is required for each time slot.',
+                'availabilities.*.time_slots.*.end_time.date_format' => 'End time must be in the format H:i.',
+                'availabilities.*.time_slots.*.end_time.after' => 'End time must be after the start time.',
+            ]
+        );
 
-      
+        // Check if validation fails
+        if ($validator->fails()) {
+            // return response()->json(['errors' => $validator->errors()], 422);
 
-        foreach ($validated['availabilities'] as $availabilityBlock) {
+            throw new ValidationException($validator);  // This will throw the error and Laravel will automatically return the response
+
+        }
+        // Continue processing availabilities if validation passes
+        foreach ($availabilities as $availabilityBlock) {
             foreach ($availabilityBlock['time_slots'] as $slot) {
 
                 $carbon = Carbon::now(env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
