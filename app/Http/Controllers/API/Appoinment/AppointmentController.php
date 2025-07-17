@@ -525,7 +525,7 @@ class AppointmentController extends Controller
 
         $appointments = Appointment::where('provider_id', $provider->id)
             ->where('status', 'confirmed')
-            ->where('appointment_time', '>=', now())
+            ->where('appointment_time', '>=', now('UTC'))
             ->with('customer.customerProfile')
             ->orderBy('appointment_time', 'asc')
             ->get();
@@ -587,7 +587,7 @@ class AppointmentController extends Controller
 
         $appointments = Appointment::where('provider_id', $provider->id)
             ->whereIn('status', ['confirmed', 'completed', 'cancelled', 'pending'])
-            ->where('appointment_time', '<', now())
+            ->where('appointment_time', '<', now('UTC'))
             ->with('customer.customerProfile')
             ->orderBy('appointment_time', 'asc')
             ->get();
