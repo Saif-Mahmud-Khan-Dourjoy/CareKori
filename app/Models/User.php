@@ -133,6 +133,16 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function complaintsSubmitted()
+    {
+        return $this->hasMany(Complaint::class, 'user_id'); 
+    }
+
+    public function complaintsReceived()
+    {
+        return $this->hasMany(Complaint::class, 'provider_id'); 
+    }
+
     public function hasRole($role)
     {
         return $this->role && Str::lower($this->role->name) === $role;
