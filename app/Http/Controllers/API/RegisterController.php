@@ -10,9 +10,11 @@ use App\Models\CustomerProfile;
 use App\Models\DoctorProfile;
 use App\Models\LawyerProfile;
 use App\Models\OtpCode;
+use App\Models\ServiceProviderAvailability;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 
 class RegisterController extends Controller
@@ -32,7 +34,7 @@ class RegisterController extends Controller
 
         $otp = OtpCode::where('phone', $request->phone)
             ->where('is_verified', true)
-           // ->where('expires_at', '>', now())
+            // ->where('expires_at', '>', now())
             ->first();
 
         if (!$otp) {
@@ -59,6 +61,9 @@ class RegisterController extends Controller
             ]);
 
             $this->createProfile($user, $request);
+            if (!in_array($user->role->name, ['customer', 'super admin', 'moderator'])){
+                $this->createAvailability($user, $request);
+            }
 
             DB::commit();
 
@@ -214,6 +219,7 @@ class RegisterController extends Controller
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
             'avatar' => $avatar, // Store the avatar URL
+            'address' => $request->address ?? null,
         ]);
     }
 
@@ -295,6 +301,7 @@ class RegisterController extends Controller
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
             'avatar' => $avatar, // Store the avatar URL
+            'address' => $request->address ?? null,
         ]);
     }
 
@@ -386,6 +393,7 @@ class RegisterController extends Controller
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
             'avatar' => $avatar, // Store the avatar URL
+            'address' => $request->address ?? null,
         ]);
 
         // Create the unique identification record for the user
@@ -414,5 +422,99 @@ class RegisterController extends Controller
         // You can generate a random number between a range, or use a larger number to make it unique
         return rand(100000000, 999999999);  // Example: Generates a random 9-digit number
     }
+
+
+
+    private function createAvailability(User $user, Request $request) {
+
+        $validated = $request->validate([
+            'availabilities' => 'required|array',
+            'availabilities.*.availability_type' => 'required|in:appointment,instant',
+            'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            // 'availabilities.*.slot_duration' => 'required|integer|min:5|max:60',
+            'availabilities.*.time_slots' => 'required|array',
+            'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
+            'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
+        ]);
+
+      
+
+        foreach ($validated['availabilities'] as $availabilityBlock) {
+            foreach ($availabilityBlock['time_slots'] as $slot) {
+
+                $carbon = Carbon::now(env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+                $todayDate = $carbon->format('Y-m-d');
+                $startTimeInDhaka = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . $slot['start_time'], env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+                $endTimeInDhaka = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . $slot['end_time'], env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+
+                $startTimeInUTC = $startTimeInDhaka->copy()->setTimezone(env('CUSTOMER_TIMEZONE', 'UTC'));
+                $endTimeInUTC = $endTimeInDhaka->copy()->setTimezone(env('CUSTOMER_TIMEZONE', 'UTC'));
+
+                $startDay = strtolower($availabilityBlock['day']);
+                $endDay = $startDay;
+
+
+                if ($startTimeInUTC->toDateString() < $startTimeInDhaka->toDateString()) {
+                    $startDay = $this->getPreviousDay($startDay);
+                }
+
+
+                if ($endTimeInUTC->toDateString() < $endTimeInDhaka->toDateString()) {
+                    $endDay = $this->getPreviousDay($endDay);
+                }
+
+
+                if ($startDay !== $endDay) {
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $startDay,
+                        'start_time' => $startTimeInUTC->toTimeString(),
+                        'end_time' => $startTimeInUTC->copy()->endOfDay()->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $endDay,
+                        'start_time' => $endTimeInUTC->copy()->startOfDay()->toTimeString(),
+                        'end_time' => $endTimeInUTC->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+                } else {
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $startDay,
+                        'start_time' => $startTimeInUTC->toTimeString(),
+                        'end_time' => $endTimeInUTC->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+                }
+            }
+        }
+
+        // return response()->json(['message' => 'Availabilities stored successfully']);
+
+    }
+
+
+    public function getPreviousDay($currentDay)
+    {
+        $days = [
+            'monday' => 'sunday',
+            'tuesday' => 'monday',
+            'wednesday' => 'tuesday',
+            'thursday' => 'wednesday',
+            'friday' => 'thursday',
+            'saturday' => 'friday',
+            'sunday' => 'saturday',
+        ];
+
+        return $days[$currentDay];
+    }
 }
- 
