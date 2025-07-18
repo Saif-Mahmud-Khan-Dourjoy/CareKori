@@ -127,4 +127,30 @@ class ComplaintController extends Controller
             'complaints' => $complaints
         ]);
     }
+
+    // Get all complaints for a specific appointment
+    public function getComplaintsForAppointment($appointmentId)
+    {
+        // Ensure the appointment exists
+        $appointment = Appointment::find($appointmentId);
+        if (!$appointment) {
+            return response()->json(['message' => 'Appointment not found'], 404);
+        }
+
+        // Eager load the 'user' and 'provider' relationships with the complaints
+        $complaints = $appointment->complaints()
+            ->with(['user', 'provider']) // Eager load both user and provider
+            ->get();
+
+        // If no complaints exist, return an appropriate message
+        if ($complaints->isEmpty()) {
+            return response()->json(['message' => 'No complaints found for this appointment'], 404);
+        }
+
+        // Return the complaints and appointment details
+        return response()->json([
+            'appointment' => $appointment,
+            'complaints' => $complaints
+        ]);
+    }
 }

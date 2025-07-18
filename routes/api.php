@@ -348,6 +348,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
     Route::get('complain/provider/{providerUniqueId}', [ComplaintController::class, 'getComplaintsForProvider']);
+    Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointment']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
