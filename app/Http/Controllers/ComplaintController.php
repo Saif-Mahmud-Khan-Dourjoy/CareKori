@@ -33,9 +33,11 @@ class ComplaintController extends Controller
         if (!$appointment) {
             return response()->json(['message' => 'Appointment not found'], 404);
         }
-
-        if ($appointment->customer_id !== Auth::id()) {
-            return response()->json(['message' => 'You can only complain about your own appointments'], 403);
+        if ($appointment->provider_id != $provider->id) {
+            return response()->json(['message' => 'Provider not attached with appointment'], 403);
+        }
+        if (Auth::id() != $appointment->customer_id) {
+            return response()->json(['message' => 'You can only complain about your own appointments '], 403);
         }
 
         // Convert the boolean values to actual booleans
@@ -47,15 +49,20 @@ class ComplaintController extends Controller
         if (Auth::id() === (int) $provider->id) {
             return response()->json(['message' => 'You cannot complain about yourself'], 400);
         }
-
+        $existingComplaint = Complaint::where('appointment_id', $validated['appointment_id'])->first();
+        if ($existingComplaint) {
+            return response()->json([
+                'message' => 'A report for this appointment has already been submitted.'
+            ], 409);
+        }
         // Create the complaint
         $complaint = Complaint::create([
-            'user_id' => Auth::id(), 
+            'user_id' => Auth::id(),
             'provider_id' => $provider->id,
             'complaint_text' => $validated['complaint_text'],
-            'is_rude' => $isRude, 
-            'is_late' => $isLate, 
-            'interrupted' => $interrupted, 
+            'is_rude' => $isRude,
+            'is_late' => $isLate,
+            'interrupted' => $interrupted,
             'appointment_id' => $validated['appointment_id'],
         ]);
 
@@ -65,7 +72,7 @@ class ComplaintController extends Controller
             'complaint' => $complaint
         ], 201);
     }
-    
+
 
 
     public function getAllComplaints()
@@ -79,7 +86,7 @@ class ComplaintController extends Controller
         ]);
     }
 
-    
+
     public function getComplaintsForProvider($providerUniqueId)
     {
 
@@ -88,9 +95,9 @@ class ComplaintController extends Controller
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
         }
-   
 
- 
+
+
         // Get all complaints for the provider
         $complaints = Complaint::with(['user', 'appointment'])->where('provider_id', $provider->id)->get();
 
@@ -103,7 +110,7 @@ class ComplaintController extends Controller
     // Get all complaints for a specific user for a specific provider
     public function getUserProviderComplaints($providerUniqueId)
     {
-        
+
 
         // Ensure the provider exists
         $provider = User::findByUniqueUserId($providerUniqueId);
@@ -122,8 +129,8 @@ class ComplaintController extends Controller
         }
 
         return response()->json([
-           
-           
+
+
             'complaints' => $complaints
         ]);
     }

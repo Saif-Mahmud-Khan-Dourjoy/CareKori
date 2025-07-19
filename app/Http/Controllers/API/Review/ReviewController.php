@@ -49,7 +49,7 @@ class ReviewController extends Controller
         ]);
 
         $user = auth()->user();
-        if (!in_array($user->role->name, ['super_admin', 'moderator'])) {
+        if (!in_array($user->role->name, ['super admin', 'moderator'])) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

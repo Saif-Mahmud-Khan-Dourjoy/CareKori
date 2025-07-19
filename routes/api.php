@@ -25,13 +25,15 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
+use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
-use App\Http\Controllers\Api\SslCommerzController;
+use App\Http\Controllers\API\SslCommerzController;
 use App\Http\Controllers\API\UnAuthenticatedController;
 use App\Http\Controllers\ComplaintController;
 use App\Models\Complaint;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -349,6 +351,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
     Route::get('complain/provider/{providerUniqueId}', [ComplaintController::class, 'getComplaintsForProvider']);
     Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointment']);
+
+    Route::get('/order/history/{userUniqueId}', [OrderController::class, 'history']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
