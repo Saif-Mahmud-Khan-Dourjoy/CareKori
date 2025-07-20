@@ -12,6 +12,7 @@ use App\Http\Controllers\API\DoctorSpecialityController;
 use App\Http\Controllers\API\DoctorTitle;
 use App\Http\Controllers\API\DoctorType;
 use App\Http\Controllers\API\Document\DocumentController;
+use App\Http\Controllers\API\EarningController;
 use App\Http\Controllers\API\LanguageStateController;
 use App\Http\Controllers\API\LawyerProfileController;
 use App\Http\Controllers\API\LawyerSpecialityController;
@@ -110,6 +111,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         Route::post('/moderator/profile/image', [ModeratorProfile::class, 'addProfileImage']);
         Route::post('/update/moderator/profile/image', [ModeratorProfile::class, 'updateProfileImage']);
+        Route::put('/admin/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
     });
 
     //common provider
@@ -143,6 +145,11 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
         // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
+
+
+        Route::post('/provider/withdraw-request', [EarningController::class, 'requestWithdrawal']);
+
+        Route::get('/provider/earnings', [EarningController::class, 'getEarnings']);
     });
 
 
@@ -239,6 +246,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
 
         Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
+        Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
     });
 
 
