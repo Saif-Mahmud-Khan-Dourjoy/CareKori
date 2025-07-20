@@ -801,7 +801,7 @@ class AppointmentController extends Controller
     {
 
         $validated = $request->validate([
-            'remarks' => 'nullable|string|max:255', // Optional remarks field
+            'remarks' => 'nullable|string|max:500', // Optional remarks field
         ]);
         $appointment = Appointment::with(['customer.wallet'])->findOrFail($appointmentId);
 
