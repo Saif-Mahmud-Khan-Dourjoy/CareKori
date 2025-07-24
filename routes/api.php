@@ -52,11 +52,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/refresh-token', [LoginController::class, 'refreshToken']);
     Route::get('/check-token', [LoginController::class, 'checkToken']);
-
-
-    
-
-    
 });
 
 Route::get('/test-ngrok', function (Request $request) {
@@ -64,7 +59,7 @@ Route::get('/test-ngrok', function (Request $request) {
 });
 
 Route::prefix('sslcommerz')->group(function () {
-   
+
 
     Route::post('/success', [SslCommerzController::class, 'success'])->name('api.sslcommerz.success');
     Route::post('/fail', [SslCommerzController::class, 'fail'])->name('api.sslcommerz.fail');
@@ -78,8 +73,6 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/initiate-payment', [SslCommerzController::class, 'initiatePayment']);
         Route::post('/refund', [SslCommerzController::class, 'refund']);
         Route::post('/refundStatus', [SslCommerzController::class, 'refundStatus']);
-
-      
     });
 
 
@@ -327,7 +320,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     // Review   
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::put('/reviews/{id}/status', [ReviewController::class, 'updateStatus']);
-    Route::get('/service-providers/{id}/reviews', [ReviewController::class, 'getApprovedReviews']);
+    Route::get('/service-providers/{serviceProviderUniqueId}/reviews', [ReviewController::class, 'getApprovedReviews']);
 
 
     //
