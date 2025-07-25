@@ -16,6 +16,7 @@ class Complaint extends Model
         'is_rude',
         'is_late',
         'interrupted',
+        'appointment_id',
     ];
 
     // Relationship with the user who is submitting the complaint
@@ -28,5 +29,10 @@ class Complaint extends Model
     public function provider()
     {
         return $this->belongsTo(User::class, 'provider_id');
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Models\Complaint;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -18,12 +19,25 @@ class ComplaintController extends Controller
             'is_rude' => 'required|boolean',
             'is_late' => 'required|boolean',
             'interrupted' => 'required|boolean',
+            'appointment_id' => 'required|exists:appointments,id',
         ]);
 
         // Ensure the provider exists
         $provider = User::where('unique_user_id', $validated['provider_unique_user_id'])->first();
         if (!$provider) {
             return response()->json(['message' => 'Provider not found'], 404);
+        }
+
+        // Ensure the appointment exists and belongs to the logged-in user
+        $appointment = Appointment::find($validated['appointment_id']);
+        if (!$appointment) {
+            return response()->json(['message' => 'Appointment not found'], 404);
+        }
+        if ($appointment->provider_id != $provider->id) {
+            return response()->json(['message' => 'Provider not attached with appointment'], 403);
+        }
+        if (Auth::id() != $appointment->customer_id) {
+            return response()->json(['message' => 'You can only complain about your own appointments '], 403);
         }
 
         // Convert the boolean values to actual booleans
@@ -35,15 +49,21 @@ class ComplaintController extends Controller
         if (Auth::id() === (int) $provider->id) {
             return response()->json(['message' => 'You cannot complain about yourself'], 400);
         }
-
+        $existingComplaint = Complaint::where('appointment_id', $validated['appointment_id'])->first();
+        if ($existingComplaint) {
+            return response()->json([
+                'message' => 'A report for this appointment has already been submitted.'
+            ], 409);
+        }
         // Create the complaint
         $complaint = Complaint::create([
-            'user_id' => Auth::id(), // The logged-in user's ID
+            'user_id' => Auth::id(),
             'provider_id' => $provider->id,
             'complaint_text' => $validated['complaint_text'],
-            'is_rude' => $isRude, // Store as a boolean
-            'is_late' => $isLate, // Store as a boolean
-            'interrupted' => $interrupted, // Store as a boolean
+            'is_rude' => $isRude,
+            'is_late' => $isLate,
+            'interrupted' => $interrupted,
+            'appointment_id' => $validated['appointment_id'],
         ]);
 
         // Return success response
@@ -52,13 +72,13 @@ class ComplaintController extends Controller
             'complaint' => $complaint
         ], 201);
     }
-    
+
 
 
     public function getAllComplaints()
     {
         // Fetch all complaints from the database
-        $complaints = Complaint::with(['provider', 'user'])->get();
+        $complaints = Complaint::with(['provider', 'user', 'appointment'])->get();
 
         // Return the complaints as a response
         return response()->json([
@@ -66,7 +86,7 @@ class ComplaintController extends Controller
         ]);
     }
 
-    
+
     public function getComplaintsForProvider($providerUniqueId)
     {
 
@@ -75,11 +95,11 @@ class ComplaintController extends Controller
         if (!$provider) {
             return response()->json(['error' => 'Provider not found'], 404);
         }
-   
 
- 
+
+
         // Get all complaints for the provider
-        $complaints = Complaint::with(['user'])->where('provider_id', $provider->id)->get();
+        $complaints = Complaint::with(['user', 'appointment'])->where('provider_id', $provider->id)->get();
 
         return response()->json([
             'provider' => $provider,
@@ -90,7 +110,7 @@ class ComplaintController extends Controller
     // Get all complaints for a specific user for a specific provider
     public function getUserProviderComplaints($providerUniqueId)
     {
-        
+
 
         // Ensure the provider exists
         $provider = User::findByUniqueUserId($providerUniqueId);
@@ -99,7 +119,7 @@ class ComplaintController extends Controller
         }
 
         // Get all complaints for this user and provider combination
-        $complaints = Complaint::with(['provider'])->where('user_id', Auth::id())
+        $complaints = Complaint::with(['provider', 'appointment'])->where('user_id', Auth::id())
             ->where('provider_id', $provider->id)
             ->get();
 
@@ -109,8 +129,34 @@ class ComplaintController extends Controller
         }
 
         return response()->json([
-           
-           
+
+
+            'complaints' => $complaints
+        ]);
+    }
+
+    // Get all complaints for a specific appointment
+    public function getComplaintsForAppointment($appointmentId)
+    {
+        // Ensure the appointment exists
+        $appointment = Appointment::find($appointmentId);
+        if (!$appointment) {
+            return response()->json(['message' => 'Appointment not found'], 404);
+        }
+
+        // Eager load the 'user' and 'provider' relationships with the complaints
+        $complaints = $appointment->complaints()
+            ->with(['user', 'provider']) // Eager load both user and provider
+            ->get();
+
+        // If no complaints exist, return an appropriate message
+        if ($complaints->isEmpty()) {
+            return response()->json(['message' => 'No complaints found for this appointment'], 404);
+        }
+
+        // Return the complaints and appointment details
+        return response()->json([
+            'appointment' => $appointment,
             'complaints' => $complaints
         ]);
     }

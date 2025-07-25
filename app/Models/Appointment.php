@@ -48,4 +48,15 @@ class Appointment extends Model
     {
         return $this->belongsTo(User::class, 'provider_id');
     }
+
+
+    public function complaints()
+    {
+        return $this->hasMany(Complaint::class);
+    }
+
+    public function review()
+    {
+        return $this->hasOne(Review::class);
+    }
 }

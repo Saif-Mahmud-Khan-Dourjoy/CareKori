@@ -26,12 +26,15 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
+use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
+use App\Http\Controllers\API\SslCommerzController;
 use App\Http\Controllers\API\UnAuthenticatedController;
 use App\Http\Controllers\ComplaintController;
 use App\Models\Complaint;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -44,13 +47,34 @@ use App\Models\Complaint;
 |
 */
 
+
+
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/refresh-token', [LoginController::class, 'refreshToken']);
     Route::get('/check-token', [LoginController::class, 'checkToken']);
 });
 
+Route::get('/test-ngrok', function (Request $request) {
+    return response()->json(['message' => 'This is a test route for ngrok']);
+});
+
+Route::prefix('sslcommerz')->group(function () {
+
+
+    Route::post('/success', [SslCommerzController::class, 'success'])->name('api.sslcommerz.success');
+    Route::post('/fail', [SslCommerzController::class, 'fail'])->name('api.sslcommerz.fail');
+    Route::post('/cancel', [SslCommerzController::class, 'cancel'])->name('api.sslcommerz.cancel');
+    Route::post('/ipn', [SslCommerzController::class, 'ipn'])->name('api.sslcommerz.ipn');
+});
+
 Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function () {
+
+    Route::prefix('sslcommerz')->group(function () {
+        Route::post('/initiate-payment', [SslCommerzController::class, 'initiatePayment']);
+        Route::post('/refund', [SslCommerzController::class, 'refund']);
+        Route::post('/refundStatus', [SslCommerzController::class, 'refundStatus']);
+    });
 
 
     //customer
@@ -78,7 +102,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
 
-        Route::get('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
+        Route::post('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
         Route::get('/check-availability/{provider_unique_user_id}/{appointment_date}', [AppointmentController::class, 'checkAvailability']);
 
 
@@ -304,7 +328,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     // Review   
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::put('/reviews/{id}/status', [ReviewController::class, 'updateStatus']);
-    Route::get('/service-providers/{id}/reviews', [ReviewController::class, 'getApprovedReviews']);
+    Route::get('/service-providers/{serviceProviderUniqueId}/reviews', [ReviewController::class, 'getApprovedReviews']);
 
 
     //
@@ -327,6 +351,9 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
     Route::get('complain/provider/{providerUniqueId}', [ComplaintController::class, 'getComplaintsForProvider']);
+    Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointment']);
+
+    Route::get('/order/history/{userUniqueId}', [OrderController::class, 'history']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
@@ -352,7 +379,6 @@ Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::
 Route::post('/forget-password/otp/send', [OtpController::class, 'sendOtpForForgetPassword']);
 Route::post('/forget-password/otp/verify', [OtpController::class, 'verifyOtpForForgetPassword']);
 Route::post('/forget-password/update', [OtpController::class, 'updatePasswordAfterForget']);
-
 Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
 Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
 
