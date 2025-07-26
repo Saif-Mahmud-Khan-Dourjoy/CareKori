@@ -800,10 +800,17 @@ class AppointmentController extends Controller
     public function cancelAppointmentWithinTime(Request $request, $appointmentId)
     {
 
+
+
+
         $validated = $request->validate([
             'remarks' => 'nullable|string|max:500', // Optional remarks field
         ]);
-        $appointment = Appointment::with(['customer.wallet'])->findOrFail($appointmentId);
+        $appointment = Appointment::with(['customer.wallet'])->find($appointmentId);
+
+        if (!$appointment) {
+            return response()->json(['error' => 'Appointment not found'], 404);
+        }
 
         if ($appointment->customer_id != auth()->user()->id) {
             return response()->json(['error' => 'Unauthorized access'], 403);
@@ -814,9 +821,12 @@ class AppointmentController extends Controller
         }
 
 
+        $appointmentTimeUTC = Carbon::parse($appointment->appointment_time, 'UTC');
+
+       
 
 
-        if (now('UTC')->diffInHours($appointment->appointment_time, false) < 24) {
+        if (now('UTC')->diffInHours($appointmentTimeUTC, false) < 24) {
             return response()->json([
                 'error' => 'Appointment cannot be cancelled now.'
             ], 403);

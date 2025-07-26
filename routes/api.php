@@ -102,7 +102,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
 
-        Route::post('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
+        Route::get('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
         Route::get('/check-availability/{provider_unique_user_id}/{appointment_date}', [AppointmentController::class, 'checkAvailability']);
 
 
