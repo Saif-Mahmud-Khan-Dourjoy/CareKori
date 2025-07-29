@@ -174,6 +174,9 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/provider/withdraw-request', [EarningController::class, 'requestWithdrawal']);
 
         Route::get('/provider/earnings', [EarningController::class, 'getEarnings']);
+
+
+        Route::get('/appointments/{date}', [AppointmentController::class, 'getAppointmentsByDate']);
     });
 
 
@@ -354,6 +357,9 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointment']);
 
     Route::get('/order/history/{userUniqueId}', [OrderController::class, 'history']);
+
+
+    Route::get('/all/withdraw-requests', [EarningController::class, 'getAllWithdrawRequests']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);

@@ -11,4 +11,9 @@ class ProviderWithdrawal extends Model
 
     protected $table = 'provider_withdrawals';
     protected $guarded = [];
+
+    public function provider()
+    {
+        return $this->belongsTo(User::class, 'provider_id');
+    }
 }

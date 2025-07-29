@@ -1225,4 +1225,33 @@ class AppointmentController extends Controller
 
         return $slots;
     }
+
+    public function getAppointmentsByDate($date)
+    {
+        
+        $validatedDate = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+
+        if (!$validatedDate) {
+            return response()->json(['error' => 'Invalid date format'], 400);
+        }
+
+      
+
+        
+        $providerId = Auth::id();
+
+        
+        $appointments = Appointment::where('provider_id', $providerId)
+            ->whereDate('appointment_time', '=', $validatedDate)  // Filter by date only (ignores time)
+            ->with(['customer'])
+            ->get();
+
+        // Return the appointments data in the response
+        return response()->json([
+            'appointments' => $appointments
+        ]);
+    }
+
+
+    
 }

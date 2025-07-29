@@ -256,4 +256,24 @@ class EarningController extends Controller
             'withdrawals' => $withdrawals,
         ]);
     }
+
+
+    public function getAllWithdrawRequests()
+    {  
+
+        // return response()->json(Auth::user()->hasRole('super admin') || Auth::user()->hasRole('moderator'));
+
+        if (!Auth::user()->hasRole('super admin') && !Auth::user()->hasRole('moderator')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+
+        $withdrawals = ProviderWithdrawal::with('provider') 
+            ->orderBy('created_at', 'desc') 
+            ->get(); 
+
+        return response()->json([
+            'withdrawals' => $withdrawals,
+        ]);
+    }
 }

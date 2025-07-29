@@ -167,8 +167,10 @@ class RegisterController extends Controller
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
-            'payment_account' => 'nullable|string|max:255',
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
+            'payment_account' => 'nullable|required_if:payment_type,MFS|required_if:payment_type,BANK|string|max:255',
+            'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
 
@@ -202,6 +204,8 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
+        $bankName = $validated['bank_name'] ?? null;
+        $accountTitle = $validated['account_title'] ?? null;
         $avatar = $validated['avatar'] ?? null;
 
         // Create the doctor profile for the user
@@ -221,7 +225,9 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
-            'avatar' => $avatar, // Store the avatar URL
+            'bank_name' => $bankName,
+            'account_title' => $accountTitle,
+            'avatar' => $avatar,
             'address' => $request->address ?? null,
         ]);
     }
@@ -248,7 +254,9 @@ class RegisterController extends Controller
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
-            'payment_account' => 'nullable|string|max:255',
+            'payment_account' => 'nullable|required_if:payment_type,MFS|required_if:payment_type,BANK|string|max:255',
+            'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
 
@@ -281,6 +289,8 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
+        $bankName = $validated['bank_name'] ?? null;
+        $accountTitle = $validated['account_title'] ?? null;
         $avatar = $validated['avatar'] ?? null; // Store the avatar URL
 
 
@@ -303,7 +313,9 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
-            'avatar' => $avatar, // Store the avatar URL
+            'bank_name' => $bankName,
+            'account_title' => $accountTitle,
+            'avatar' => $avatar,
             'address' => $request->address ?? null,
         ]);
     }
@@ -330,7 +342,9 @@ class RegisterController extends Controller
             'unique_identification_no' => 'required|string|max:255',
             'other_data' => 'nullable',  // Optional other data field (JSON or text)
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
-            'payment_account' => 'nullable|string|max:255',
+            'payment_account' => 'nullable|required_if:payment_type,MFS|required_if:payment_type,BANK|string|max:255',
+            'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
 
@@ -362,6 +376,8 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
+        $bankName = $validated['bank_name'] ?? null;
+        $accountTitle = $validated['account_title'] ?? null;
         $unique_identification_no = $validated['unique_identification_no'];
         $avatar = $validated['avatar'] ?? null; // Store the avatar URL
 
@@ -395,7 +411,9 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
-            'avatar' => $avatar, // Store the avatar URL
+            'bank_name' => $bankName,
+            'account_title' => $accountTitle,
+            'avatar' => $avatar,
             'address' => $request->address ?? null,
         ]);
 
