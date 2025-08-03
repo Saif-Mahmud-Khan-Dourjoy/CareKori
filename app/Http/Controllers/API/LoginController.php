@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use App\Models\Appointment;
+use App\Models\ProviderWithdrawal;
 
 class LoginController extends Controller
 {
@@ -115,6 +117,83 @@ class LoginController extends Controller
     //     ], 200);
     // }
 
+    // public function login(Request $request)
+    // {
+    //     // Step 1: Validate input
+    //     $request->validate([
+    //         'phone' => 'required',
+    //         'password' => 'required',
+    //     ]);
+
+    //     // Step 2: Load user with role only
+    //     $user = User::with('role')->where('phone', $request->phone)->first();
+
+    //     // Step 3: Check credentials
+    //     if (! $user || ! Hash::check($request->password, $user->password)) {
+    //         return response()->json([
+    //             'message' => 'Invalid credentials',
+    //             'status' => false,
+    //             'code' => 401
+    //         ], 401);
+    //     }
+
+    //     // Step 4: Determine role
+    //     $role = Str::lower($user->role->name);
+
+    //     // Step 5: Dynamically load only required profile based on role
+    //     $user->load(
+    //         match ($role) {
+    //             'doctor' => ['doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle'],
+    //             'lawyer' => ['lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality'],
+    //             'customer' => ['customerProfile', 'wallet', 'languageState'],
+    //             'moderator' => ['moderatorProfile'],
+    //             'super admin' => [],
+
+    //             default => ['commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality'],
+    //         }
+    //     );
+    //     $providerId = $user->id; //Auth::id();
+    //     //echo $providerId;die();
+
+    //     $totalEarnings = Appointment::where('provider_id', $providerId)
+    //         ->where('status', 'completed')
+    //         ->where('is_money_back', false)
+    //         ->sum('price');
+
+    //     $totalWithdrawn = ProviderWithdrawal::where('provider_id', $providerId)
+    //         ->where('status', 'success')
+    //         ->sum('amount');
+    //     $user->makeHidden('id');
+
+    //     // Step 6: Select appropriate profile
+    //     // $profile = match ($role) {
+    //     //     'doctor' => $user->doctorProfile,
+    //     //     'lawyer' => $user->lawyerProfile,
+    //     //     'customer' => $user->customerProfile,
+    //     //     'moderator' => $user->moderatorProfile,
+    //     //     'super admin' => [],
+    //     //     default => $user->commonProfile,
+    //     // };
+
+
+    //     return response()->json([
+    //         // 'user' => [
+    //         //     'unique_user_id' => $user->unique_user_id,
+    //         //     'name' => $user->name,
+    //         //     'phone' => $user->phone,
+    //         //     'email' => $user->email,
+    //         //     'role' => ['name' => $user->role->name, 'id' => $user->role->id],
+    //         //     'profile' => $profile,
+    //         // ],
+    //         'user' => $user,
+    //         'wallet' => $totalEarnings - $totalWithdrawn,
+    //         'token' => $user->createToken('carekori-token')->plainTextToken,
+    //         'message' => 'Login successful',
+    //         'status' => true,
+    //         'code' => 200,
+    //     ]);
+    // }
+
     public function login(Request $request)
     {
         // Step 1: Validate input
@@ -123,7 +202,7 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        // Step 2: Load user with role only
+        // Step 2: Load user with role
         $user = User::with('role')->where('phone', $request->phone)->first();
 
         // Step 3: Check credentials
@@ -131,92 +210,110 @@ class LoginController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials',
                 'status' => false,
-                'code' => 401
+                'code' => 401,
             ], 401);
         }
 
         // Step 4: Determine role
         $role = Str::lower($user->role->name);
 
-        // Step 5: Dynamically load only required profile based on role
+        // Step 5: Load profile based on role
         $user->load(
             match ($role) {
                 'doctor' => ['doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle'],
                 'lawyer' => ['lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality'],
-                'customer' => ['customerProfile','wallet', 'languageState'],
+                'customer' => ['customerProfile', 'wallet', 'languageState'],
                 'moderator' => ['moderatorProfile'],
-                'super admin'=>[],
-                
+                'super admin' => [],
                 default => ['commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality'],
             }
         );
 
         $user->makeHidden('id');
 
-        // Step 6: Select appropriate profile
-        // $profile = match ($role) {
-        //     'doctor' => $user->doctorProfile,
-        //     'lawyer' => $user->lawyerProfile,
-        //     'customer' => $user->customerProfile,
-        //     'moderator' => $user->moderatorProfile,
-        //     'super admin' => [],
-        //     default => $user->commonProfile,
-        // };
+        // Step 6: Add wallet info only for service providers (exclude customer, moderator, super admin)
+        $excludedRoles = ['customer', 'moderator', 'super admin'];
+        $earningData = null;
 
-        // Step 7: Return the res'super admin' => [],ponse
+        if (!in_array($role, $excludedRoles)) {
+            $providerId = $user->id;
+
+            $totalEarnings = Appointment::where('provider_id', $providerId)
+                ->where('status', 'completed')
+                ->where('is_money_back', false)
+                ->sum('price');
+            $last30DaysEarnings = Appointment::where('provider_id', $providerId)
+                ->where('status', 'completed')
+                ->where('is_money_back', false)
+                ->where('updated_at', '>=', Carbon::now()->subDays(30))
+                ->sum('price');
+
+            $totalWithdrawn = ProviderWithdrawal::where('provider_id', $providerId)
+                ->where('status', 'success')
+                ->sum('amount');
+
+            $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)->where('status', 'success')
+                ->orderBy('withdrawn_at', 'desc')
+                ->get();
+
+            $wallet = $totalEarnings - $totalWithdrawn;
+
+            $earningData = [
+                'balance' => $wallet,
+                'total_earnings' => $totalEarnings,
+                'last_30_days_earnings' => $last30DaysEarnings,
+                'total_withdrawn' => $totalWithdrawn,
+                'withdrawals' => $withdrawals,
+            ];
+        }
+
         return response()->json([
-            // 'user' => [
-            //     'unique_user_id' => $user->unique_user_id,
-            //     'name' => $user->name,
-            //     'phone' => $user->phone,
-            //     'email' => $user->email,
-            //     'role' => ['name' => $user->role->name, 'id' => $user->role->id],
-            //     'profile' => $profile,
-            // ],
-            'user'=> $user,
+            'user' => $user,
+            'earningData' => $earningData,
             'token' => $user->createToken('carekori-token')->plainTextToken,
             'message' => 'Login successful',
             'status' => true,
             'code' => 200,
+        ], 200);
+    }
+
+
+    public function refreshToken(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $token = $user->currentAccessToken();
+
+        if (!$token) {
+            return response()->json(['message' => 'No active token found.'], 401);
+        }
+
+        $expirationMinutes = env('SANCTUM_TOKEN_EXPIRATION', 60);
+        $expiresAt = Carbon::parse($token->created_at)->timezone('Asia/Dhaka')->addMinutes($expirationMinutes);
+
+        if ($expiresAt->isPast()) {
+            return response()->json([
+                'message' => 'Token expired. Please log in again.',
+                'expired_at' => $expiresAt->toDateTimeString(),
+            ], 401);
+        }
+
+        $token->delete();
+
+        $newToken = $user->createToken('carekori-token');
+        $newExpiresAt = Carbon::now('Asia/Dhaka')->addMinutes($expirationMinutes);
+
+        return response()->json([
+            'token' => $newToken->plainTextToken,
+            'token_type' => 'Bearer',
+            'expires_at' => $newExpiresAt->toDateTimeString(),
+            'message' => 'Token refreshed successfully.',
         ]);
     }
-
-  public function refreshToken(Request $request)
-{
-    $user = $request->user();
-
-    if (!$user) {
-        return response()->json(['message' => 'Unauthenticated.'], 401);
-    }
-
-    $token = $user->currentAccessToken();
-
-    if (!$token) {
-        return response()->json(['message' => 'No active token found.'], 401);
-    }
-
-    $expirationMinutes = env('SANCTUM_TOKEN_EXPIRATION', 60);
-    $expiresAt = Carbon::parse($token->created_at)->timezone('Asia/Dhaka')->addMinutes($expirationMinutes);
-
-    if ($expiresAt->isPast()) {
-        return response()->json([
-            'message' => 'Token expired. Please log in again.',
-            'expired_at' => $expiresAt->toDateTimeString(),
-        ], 401);
-    }
-
-    $token->delete();
-
-    $newToken = $user->createToken('carekori-token');
-    $newExpiresAt = Carbon::now('Asia/Dhaka')->addMinutes($expirationMinutes);
-
-    return response()->json([
-        'token' => $newToken->plainTextToken,
-        'token_type' => 'Bearer',
-        'expires_at' => $newExpiresAt->toDateTimeString(),
-        'message' => 'Token refreshed successfully.',
-    ]);
-}
 
 
 
@@ -246,7 +343,8 @@ class LoginController extends Controller
     }
 
 
-    public function updatePassword(Request $request){
+    public function updatePassword(Request $request)
+    {
         $request->validate([
             'current_password' => 'required|string',
             'new_password' => 'required|string|min:8|confirmed',
@@ -265,5 +363,4 @@ class LoginController extends Controller
 
         return response()->json(['message' => 'Password updated successfully.']);
     }
-    
 }

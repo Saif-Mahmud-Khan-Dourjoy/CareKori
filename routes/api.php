@@ -177,6 +177,12 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         Route::get('/appointments/{date}', [AppointmentController::class, 'getAppointmentsByDate']);
+
+        Route::get('/appointments/with-customer/{customerUniqueId}', [AppointmentController::class, 'appointmentsWithCustomer']);
+        Route::get('/provider/appointments/overview', [AppointmentController::class, 'providerOverview']);
+        Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancelAppointmentByProvider']);
+
+        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
     });
 
 

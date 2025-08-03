@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\DoctorProfile;
+use App\Models\ProviderWithdrawal;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -14,7 +17,7 @@ class DoctorProfileCOntroller extends Controller
     {
         $user = $request->user();
 
-        
+
 
         // Validate the incoming request
         $validated = $request->validate([
@@ -38,7 +41,7 @@ class DoctorProfileCOntroller extends Controller
             'avatar' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
         ]);
 
-    
+
 
 
         DB::beginTransaction();
@@ -104,7 +107,7 @@ class DoctorProfileCOntroller extends Controller
             return response()->json(['message' => 'Error updating profile: ' . $e->getMessage()], 500);
         }
 
- 
+
 
         return response()->json(['message' => 'Profile updated successfully.']);
     }
@@ -116,11 +119,58 @@ class DoctorProfileCOntroller extends Controller
 
         // Load the associated customer profile
         $user->load([
+            'availability',
             'doctorProfile',
             'doctorProfile.doctorType',
             'doctorProfile.doctorSpeciality',
             'doctorProfile.doctorTitle'
         ]);
+
+        $providerId = $user->id;
+
+
+        $totalEarnings = Appointment::where('provider_id', $providerId)
+            ->where('status', 'completed')
+            ->where('is_money_back', false)
+            ->sum('price');
+
+
+        $last30DaysEarnings = Appointment::where('provider_id', $providerId)
+            ->where('status', 'completed')
+            ->where('is_money_back', false)
+            ->where('updated_at', '>=', Carbon::now()->subDays(30))
+            ->sum('price');
+
+
+        $totalWithdrawn = ProviderWithdrawal::where('provider_id', $providerId)->where('status', 'success')
+            ->sum('amount');
+
+
+        $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)->where('status', 'success')
+            ->orderBy('withdrawn_at', 'desc')
+            ->get();
+
+        $earningData = [
+            'balance' => $totalEarnings - $totalWithdrawn,
+            'total_earnings' => $totalEarnings,
+            'last_30_days_earnings' => $last30DaysEarnings,
+            'total_withdrawn' => $totalWithdrawn,
+            'withdrawals' => $withdrawals,
+        ];
+
+
+        $providerOtherInfo = [];
+
+        $completedAppointments = Appointment::where('provider_id', $providerId)
+            ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+            // ->distinct('customer_id')
+            ->count('customer_id');
+
+        $providerOtherInfo['customers_count'] = $completedAppointments;
+        $providerOtherInfo['average_rating'] = $user->averageRating();
+        $providerOtherInfo['review_count'] = $user->reviewCount();
+        $providerOtherInfo['experience_count'] = rand(0, 9);
+        $providerOtherInfo['average_rating'] = (float) ($providerOtherInfo['average_rating'] ?? 0.0);
 
         // Return the user data along with the customer profile
         return response()->json([
@@ -129,8 +179,10 @@ class DoctorProfileCOntroller extends Controller
             'code' => 200,
             'status' => true,
             'data' => $user,
-            // 'doctor_profile' => $user->doctorProfile,
-          
+            'earningData' =>  $earningData,
+            'providerOtherInfo' => $providerOtherInfo
+
+
         ]);
     }
 
@@ -176,7 +228,9 @@ class DoctorProfileCOntroller extends Controller
             // Convert full URL to relative path
             $relativePath = str_replace(
                 asset(''),
-                '', $user->doctorProfile->avatar);
+                '',
+                $user->doctorProfile->avatar
+            );
 
             // Check if the file exists and delete it
             if (File::exists(public_path($relativePath))) {

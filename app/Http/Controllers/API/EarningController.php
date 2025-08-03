@@ -250,6 +250,7 @@ class EarningController extends Controller
             ->get();
 
         return response()->json([
+            'balance' => $totalEarnings - $totalWithdrawn,
             'total_earnings' => $totalEarnings,
             'last_30_days_earnings' => $last30DaysEarnings,
             'total_withdrawn' => $totalWithdrawn,
@@ -259,7 +260,7 @@ class EarningController extends Controller
 
 
     public function getAllWithdrawRequests()
-    {  
+    {
 
         // return response()->json(Auth::user()->hasRole('super admin') || Auth::user()->hasRole('moderator'));
 
@@ -268,9 +269,9 @@ class EarningController extends Controller
         }
 
 
-        $withdrawals = ProviderWithdrawal::with('provider') 
-            ->orderBy('created_at', 'desc') 
-            ->get(); 
+        $withdrawals = ProviderWithdrawal::with('provider')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json([
             'withdrawals' => $withdrawals,

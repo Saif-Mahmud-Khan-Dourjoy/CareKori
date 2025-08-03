@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\CommonProfile;
+use App\Models\ProviderWithdrawal;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -126,8 +129,8 @@ class CommonProvider extends Controller
                 'identification_no' => $identification_no,
                 'active_from' => $active_from,
                 'active_to' => $active_to,
-                'address'=>$address,
-                'avatar'=>$avatar,
+                'address' => $address,
+                'avatar' => $avatar,
             ]);
         }
 
@@ -151,18 +154,78 @@ class CommonProvider extends Controller
 
         // Load the associated customer profile
         $user->load([
+            'availability',
             'commonProfile',
             'commonProfile.uniqueIdentification',
 
         ]);
 
-        $profileKey = $user->role->name . '_profile';
+        // $profileKey = $user->role->name . '_profile';
+
+        $providerId = $user->id;
+
+
+        $totalEarnings = Appointment::where('provider_id', $providerId)
+            ->where('status', 'completed')
+            ->where('is_money_back', false)
+            ->sum('price');
+
+
+        $last30DaysEarnings = Appointment::where('provider_id', $providerId)
+            ->where('status', 'completed')
+            ->where('is_money_back', false)
+            ->where('updated_at', '>=', Carbon::now()->subDays(30))
+            ->sum('price');
+
+
+        $totalWithdrawn = ProviderWithdrawal::where('provider_id', $providerId)->where('status', 'success')
+            ->sum('amount');
+
+
+        $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)->where('status', 'success')
+            ->orderBy('withdrawn_at', 'desc')
+            ->get();
+
+        $earningData = [
+            'balance' => $totalEarnings - $totalWithdrawn,
+            'total_earnings' => $totalEarnings,
+            'last_30_days_earnings' => $last30DaysEarnings,
+            'total_withdrawn' => $totalWithdrawn,
+            'withdrawals' => $withdrawals,
+        ];
+
+
+        $providerOtherInfo = [];
+
+        $completedAppointments = Appointment::where('provider_id', $providerId)
+            ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+            // ->distinct('customer_id')
+            ->count('customer_id');
+
+        $providerOtherInfo['customers_count'] = $completedAppointments;
+        $providerOtherInfo['average_rating'] = $user->averageRating();
+        $providerOtherInfo['review_count'] = $user->reviewCount();
+        $providerOtherInfo['experience_count'] = rand(0, 9);
+        $providerOtherInfo['average_rating'] = (float) ($providerOtherInfo['average_rating'] ?? 0.0);
 
         // Return the user data along with the customer profile
         return response()->json([
-            'user' => $user,
-            $profileKey => $user->commonProfile,
+            'success' => true,
+            'message' => $user->role->name .'profile retrieved successfully.',
+            'code' => 200,
+            'status' => true,
+            'data' => $user,
+            'earningData' =>  $earningData,
+            'providerOtherInfo' => $providerOtherInfo
+
+
         ]);
+
+        // Return the user data along with the customer profile
+        // return response()->json([
+        //     'user' => $user,
+        //     // $profileKey => $user->commonProfile,
+        // ]);
     }
 
 
