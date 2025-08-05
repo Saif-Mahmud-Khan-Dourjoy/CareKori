@@ -22,23 +22,24 @@ class DoctorProfileCOntroller extends Controller
         // Validate the incoming request
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'phone' => 'sometimes|required|regex:/^01[3-9][0-9]{8}$/',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'doctor_type_id' => 'required|exists:doctor_types,id',
-            'doctor_speciality_id' => 'required|exists:doctor_specialities,id',
-            'doctor_title_id' => 'required|exists:doctor_titles,id',
+            'doctor_type_id' => 'sometimes|required|exists:doctor_types,id',
+            'doctor_speciality_id' => 'sometimes|required|exists:doctor_specialities,id',
+            'doctor_title_id' => 'sometimes|required|exists:doctor_titles,id',
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
-            'gender' => 'nullable|in:male,female,other',
-            'dob' => 'nullable|date|before:today',
             'district' => 'nullable|string|max:255',
             'thana' => 'nullable|string|max:255',
-            'identification_no' => 'required|string|max:255',
-            'registration_no' => 'required|string|max:255',
+            'identification_no' => 'sometimes|required|string|max:255',
+            'registration_no' => 'sometimes|required|string|max:255',
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'address' => 'nullable|string|max:500',
-            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
+            'avatar' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
+             'bank_name'=>'nullable|string|max:500',
+             'account_title'=>'nullable|string|max:500',
+             'payment_type'=>'nullable|string|max:500',
+             'payment_account'=>'nullable|string|max:500',
         ]);
 
 
