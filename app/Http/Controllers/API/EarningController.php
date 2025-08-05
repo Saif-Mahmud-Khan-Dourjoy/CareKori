@@ -226,6 +226,7 @@ class EarningController extends Controller
     public function getEarnings()
     {
         $providerId = Auth::id();
+      $providerRole=Auth::user()->role_id;
 
 
         $totalEarnings = Appointment::where('provider_id', $providerId)
@@ -237,7 +238,7 @@ class EarningController extends Controller
         $last30DaysEarnings = Appointment::where('provider_id', $providerId)
             ->where('status', 'completed')
             ->where('is_money_back', false)
-            ->where('updated_at', '>=', Carbon::now()->subDays(30))
+            ->where('appointment_time', '>=', Carbon::now()->subDays(30))
             ->sum('price');
 
 
@@ -245,16 +246,62 @@ class EarningController extends Controller
             ->sum('amount');
 
 
-        $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)->where('status', 'success')
-            ->orderBy('withdrawn_at', 'desc')
-            ->get();
+            //
+            switch ($providerRole) {
+            case '4':
+                
+      $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)
+    ->where('status', 'success')
+    ->join('doctor_profiles', 'provider_withdrawals.provider_id', '=', 'doctor_profiles.user_id')
+    ->orderBy('withdrawn_at', 'desc')
+    ->select(
+        'provider_withdrawals.*',
+        'doctor_profiles.bank_name', // add the columns you want from doctor_profiles
+        'doctor_profiles.account_title'
+    )
+    ->get();
+                break;
+            case '6':
+                $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)
+    ->where('status', 'success')
+    ->join('doctor_profiles', 'provider_withdrawals.provider_id', '=', 'lawyer_profiles.user_id')
+    ->orderBy('withdrawn_at', 'desc')
+    ->select(
+        'provider_withdrawals.*',
+        'lawyer_profiles.bank_name',  
+        'lawyer_profiles.account_title'
+    )
+    ->get();
+                break;
+            default:
+                $withdrawals = ProviderWithdrawal::where('provider_id', $providerId)
+    ->where('status', 'success')
+    ->join('common_profiles', 'provider_withdrawals.provider_id', '=', 'lawyer_profiles.user_id')
+    ->orderBy('withdrawn_at', 'desc')
+    ->select(
+        'provider_withdrawals.*',
+        'common_profiles.bank_name',  
+        'common_profiles.account_title'
+    )
+    ->get();
+                break;
+        }
+            //
+          $paymentReceived = Appointment::join('users', 'appointments.customer_id', '=', 'users.id')
+    ->where('appointments.provider_id', $providerId)
+    ->where('appointments.status', 'completed')
+    ->where('appointments.is_money_back', false)
+    ->select('appointments.*', 'users.name as service_getter_name')
+    ->get();
+            
 
         return response()->json([
             'balance' => $totalEarnings - $totalWithdrawn,
             'total_earnings' => $totalEarnings,
-            'last_30_days_earnings' => $last30DaysEarnings,
+            'last_30_days_earnings' => number_format((float)$last30DaysEarnings, 2, '.', ''),
             'total_withdrawn' => $totalWithdrawn,
-            'withdrawals' => $withdrawals,
+            'withdrawn_amount' => $withdrawals,
+            'payment_received'=>$paymentReceived
         ]);
     }
 
