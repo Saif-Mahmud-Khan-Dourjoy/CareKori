@@ -1269,10 +1269,21 @@ class AppointmentController extends Controller
         }
 
 
-        $appointments = Appointment::where('provider_id', $provider->id)
-            ->where('customer_id', $customer->id)
-            ->orderBy('appointment_time', 'desc')
-            ->get();
+       $appointments = Appointment::where('appointments.provider_id', $provider->id)
+    ->where('appointments.customer_id', $customer->id)
+    ->join('users', 'users.id', '=', 'appointments.customer_id')
+    ->join('customer_profiles', 'customer_profiles.user_id', '=', 'appointments.customer_id')
+    ->orderBy('appointments.appointment_time', 'desc')
+    ->select([
+        'appointments.*',
+        'users.name as customer_name',
+        'customer_profiles.gender',
+        'customer_profiles.dob',
+        'customer_profiles.address',
+        'customer_profiles.avatar',
+    ])
+    ->get();
+
 
         return response()->json([
             'count' => $appointments->count(),
