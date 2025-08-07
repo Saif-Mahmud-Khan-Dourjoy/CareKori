@@ -183,6 +183,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancelAppointmentByProvider']);
 
         Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
+           Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
+        Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
     });
 
 
