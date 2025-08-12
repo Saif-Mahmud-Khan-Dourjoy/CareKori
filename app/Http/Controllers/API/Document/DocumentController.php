@@ -127,6 +127,93 @@ class DocumentController extends Controller
 
         return response()->json(['documents' => $documents]);
     }
+    //
+   public function getPrivateDocuments()
+{
+    $authUserId = auth()->id();
+
+    $rows = \DB::table('private_documents as pd')
+        ->join('documents as d', 'pd.document_id', '=', 'd.id')
+        ->join('customer_profiles as cp', 'pd.created_for', '=', 'cp.user_id')
+        ->join('users as u', 'cp.user_id', '=', 'u.id') // profile owner
+        ->join('users as target_user', 'pd.created_for', '=', 'target_user.id') // name of created_for user
+        ->leftJoin('appointments as ap', 'pd.appointment_id', '=', 'ap.id') // appointment details
+        ->select(
+            'u.id as user_id',
+            'cp.gender',
+            'cp.dob',
+            'cp.avatar',
+            'target_user.name as created_for_name',
+
+            'd.id as document_id',
+            'd.document_link',
+            'd.type',
+
+            'pd.created_at as private_doc_created_at',
+
+            // appointment fields
+            'ap.id as appointment_id',
+            'ap.customer_id',
+            'ap.provider_id',
+            'ap.status as appointment_status',
+            'ap.price',
+            'ap.is_money_back',
+            'ap.is_cancel_by_user',
+            'ap.appointment_time',
+            'ap.remarks',
+            'ap.created_at as appointment_created_at',
+            'ap.updated_at as appointment_updated_at'
+        )
+        ->where('pd.created_by', $authUserId)
+        ->orderBy('u.id')
+        ->get();
+
+    $users = [];
+    foreach ($rows as $row) {
+        if (!isset($users[$row->user_id])) {
+            $users[$row->user_id] = [
+                'user_id' => $row->user_id,
+                'gender' => $row->gender,
+                'dob' => $row->dob,
+                'avatar' => $row->avatar,
+                'created_for_name' => $row->created_for_name,
+                'documents_count' => 0,
+                'documents' => []
+            ];
+        }
+
+        $users[$row->user_id]['documents'][] = [
+            'document_id' => $row->document_id,
+            'document_link' => $row->document_link,
+            'type' => $row->type,
+            'created_at' => $row->private_doc_created_at,
+            'appointment' => [
+                'id' => $row->appointment_id,
+                'customer_id' => $row->customer_id,
+                'provider_id' => $row->provider_id,
+                'status' => $row->appointment_status,
+                'price' => $row->price,
+                'is_money_back' => (bool) $row->is_money_back,
+                'is_cancel_by_user' => (bool) $row->is_cancel_by_user,
+                'appointment_time' => $row->appointment_time,
+                'remarks' => $row->remarks,
+                'created_at' => $row->appointment_created_at,
+                'updated_at' => $row->appointment_updated_at
+            ]
+        ];
+
+        $users[$row->user_id]['documents_count']++;
+    }
+
+    return response()->json([
+        'shared_documents' => array_values($users)
+    ]);
+}
+
+
+
+
+    //
 
     public function getPublicDocuments($uniqueId)
     {
