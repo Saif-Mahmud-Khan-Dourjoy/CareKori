@@ -335,6 +335,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::get('/document/appointment/{id}', [DocumentController::class, 'getDocumentsByAppointment']);
     Route::get('/document/private/customer/{customerUniqueId}/provider/{providerUniqueId}', [DocumentController::class, 'getPrivateDocumentsForCustomer']);
     Route::get('/document/private/provider/{providerUniqueId}/customer/{customerUniqueId}', [DocumentController::class, 'getPrivateDocumentsForProvider']);
+    Route::get('/document/private/provider', [DocumentController::class, 'getPrivateDocuments']);
 
     // Review   
     Route::post('/reviews', [ReviewController::class, 'store']);
