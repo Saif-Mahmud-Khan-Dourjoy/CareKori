@@ -17,6 +17,13 @@ class Complaint extends Model
         'is_late',
         'interrupted',
         'appointment_id',
+        'reported_by', 
+    ];
+
+    protected $casts = [
+        'is_rude' => 'boolean',
+        'is_late' => 'boolean',
+        'interrupted' => 'boolean',
     ];
 
     // Relationship with the user who is submitting the complaint

@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\ProviderWithdrawal;
+use App\Models\ServiceProviderAvailability;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class DoctorProfileCOntroller extends Controller
 {
@@ -36,10 +40,11 @@ class DoctorProfileCOntroller extends Controller
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'address' => 'nullable|string|max:500',
             'avatar' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
-             'bank_name'=>'nullable|string|max:500',
-             'account_title'=>'nullable|string|max:500',
-             'payment_type'=>'nullable|string|max:500',
-             'payment_account'=>'nullable|string|max:500',
+            'bank_name' => 'nullable|string|max:500',
+            'account_title' => 'nullable|string|max:500',
+            'payment_type' => 'nullable|string|max:500',
+            'payment_account' => 'nullable|string|max:500',
+            'availabilities' => 'sometimes',
         ]);
 
 
@@ -102,6 +107,10 @@ class DoctorProfileCOntroller extends Controller
                 $validated
             );
 
+            if ($request->has('availabilities')) {
+                $this->updateProviderAvailability($user, $request);
+            }
+
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -111,6 +120,129 @@ class DoctorProfileCOntroller extends Controller
 
 
         return response()->json(['message' => 'Profile updated successfully.']);
+    }
+
+
+    private function updateProviderAvailability(User $user, Request $request)
+    {
+        // Decode the JSON string
+        $availabilities = json_decode($request->input('availabilities'), true);
+
+        // Validate the decoded availabilities array
+        $validator = Validator::make(
+            ['availabilities' => $availabilities], // Wrap the availabilities into an array for validation
+            [
+                'availabilities' => 'required|array',
+                'availabilities.*.availability_type' => 'required|in:appointment,instant_consultation',
+                'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                'availabilities.*.time_slots' => 'required|array|min:1',
+                'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
+                'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
+            ],
+            [
+                // Custom messages
+                'availabilities.required' => 'Availabilities field is required.',
+                'availabilities.array' => 'Availabilities should be an array.',
+                'availabilities.*.availability_type.required' => 'Each availability block must have an availability type.',
+                'availabilities.*.availability_type.in' => 'Availability type must be either appointment or instant_consultation.',
+                'availabilities.*.day.required' => 'Each availability block must have a day.',
+                'availabilities.*.day.in' => 'Day must be one of the following: monday, tuesday, wednesday, thursday, friday, saturday, sunday.',
+                'availabilities.*.time_slots.required' => 'Each availability block must include a time_slots field.',
+                'availabilities.*.time_slots.array' => 'The time_slots field must be an array.',
+                'availabilities.*.time_slots.min' => 'Each availability block must contain at least one time slot.',
+                'availabilities.*.time_slots.*.start_time.required' => 'Start time is required for each time slot.',
+                'availabilities.*.time_slots.*.start_time.date_format' => 'Start time must be in the format H:i.',
+                'availabilities.*.time_slots.*.end_time.required' => 'End time is required for each time slot.',
+                'availabilities.*.time_slots.*.end_time.date_format' => 'End time must be in the format H:i.',
+                'availabilities.*.time_slots.*.end_time.after' => 'End time must be after the start time.',
+            ]
+        );
+
+
+        if ($validator->fails()) {
+
+
+            throw new ValidationException($validator);
+        }
+        ServiceProviderAvailability::where('provider_id', $user->id)->delete();
+
+        foreach ($availabilities as $availabilityBlock) {
+            foreach ($availabilityBlock['time_slots'] as $slot) {
+
+                $carbon = Carbon::now(env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+                $todayDate = $carbon->format('Y-m-d');
+                $startTimeInDhaka = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . $slot['start_time'], env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+                $endTimeInDhaka = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . $slot['end_time'], env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+
+                $startTimeInUTC = $startTimeInDhaka->copy()->setTimezone(env('CUSTOMER_TIMEZONE', 'UTC'));
+                $endTimeInUTC = $endTimeInDhaka->copy()->setTimezone(env('CUSTOMER_TIMEZONE', 'UTC'));
+
+                $startDay = strtolower($availabilityBlock['day']);
+                $endDay = $startDay;
+
+
+                if ($startTimeInUTC->toDateString() < $startTimeInDhaka->toDateString()) {
+                    $startDay = $this->getPreviousDay($startDay);
+                }
+
+
+                if ($endTimeInUTC->toDateString() < $endTimeInDhaka->toDateString()) {
+                    $endDay = $this->getPreviousDay($endDay);
+                }
+
+
+                if ($startDay !== $endDay) {
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $startDay,
+                        'start_time' => $startTimeInUTC->toTimeString(),
+                        'end_time' => $startTimeInUTC->copy()->endOfDay()->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $endDay,
+                        'start_time' => $endTimeInUTC->copy()->startOfDay()->toTimeString(),
+                        'end_time' => $endTimeInUTC->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+                } else {
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $startDay,
+                        'start_time' => $startTimeInUTC->toTimeString(),
+                        'end_time' => $endTimeInUTC->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+                }
+            }
+        }
+
+        // return response()->json(['message' => 'Availabilities stored successfully']);
+
+    }
+
+
+    public function getPreviousDay($currentDay)
+    {
+        $days = [
+            'monday' => 'sunday',
+            'tuesday' => 'monday',
+            'wednesday' => 'tuesday',
+            'thursday' => 'wednesday',
+            'friday' => 'thursday',
+            'saturday' => 'friday',
+            'sunday' => 'saturday',
+        ];
+
+        return $days[$currentDay];
     }
 
     public function show(Request $request)
@@ -126,6 +258,24 @@ class DoctorProfileCOntroller extends Controller
             'doctorProfile.doctorSpeciality',
             'doctorProfile.doctorTitle'
         ]);
+
+        if ($user->doctorProfile) {
+            $doctorProfile = $user->doctorProfile->toArray();
+
+
+            if (array_key_exists('district', $doctorProfile)) {
+                $doctorProfile['division'] = $doctorProfile['district'];
+                unset($doctorProfile['district']);
+            }
+
+            if (array_key_exists('thana', $doctorProfile)) {
+                $doctorProfile['district'] = $doctorProfile['thana'];
+                unset($doctorProfile['thana']);
+            }
+
+
+            $user->doctorProfile = $doctorProfile;
+        }
 
         $providerId = $user->id;
 

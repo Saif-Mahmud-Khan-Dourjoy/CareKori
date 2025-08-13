@@ -185,6 +185,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
            Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
         Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
+
+        Route::post('/complaints/provider', [ComplaintController::class, 'storeByProvider']);
     });
 
 
@@ -363,12 +365,14 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
     Route::get('complain/provider/{providerUniqueId}', [ComplaintController::class, 'getComplaintsForProvider']);
-    Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointment']);
+    Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointmentByCustomer']);
 
     Route::get('/order/history/{userUniqueId}', [OrderController::class, 'history']);
 
 
     Route::get('/all/withdraw-requests', [EarningController::class, 'getAllWithdrawRequests']);
+
+    Route::get('/complaints/{appointmentId}', [ComplaintController::class, 'getComplaintForAppointmentByProvider']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);

@@ -114,33 +114,142 @@ class ServiceProvider extends Controller
     }
 
 
+    // public function serviceProviderListBySpeciality($specialityId, $roleId)
+    // {
+    //     $role = Role::find($roleId);
+    //     switch (Str::lower($role->name)) {
+    //         case 'doctor':
+    //             $serviceProvider = User::with(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle', 'availability'=>function($query){ $query->select('day', 'provider_id','start_time','end_time','slot_duration')->where('availability_type', 'appointment');}])->where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
+    //                 $query->where('doctor_speciality_id', $specialityId);
+    //             })->get();
+    //             break;
+    //         case 'lawyer':
+    //             $serviceProvider = User::with(['lawyerProfile', 'lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality', 'availability' => function ($query) {
+    //                 $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')->where('availability_type', 'appointment');
+    //             }])->where('role_id', $roleId)->whereHas('lawyerProfile', function ($query) use ($specialityId) {
+    //                 $query->where('lawyer_speciality_id', $specialityId);
+    //             })->get();
+    //             break;
+    //         default:
+    //             $serviceProvider = User::where('role_id', $roleId)
+    //                 ->whereHas('commonProfile', function ($query) use ($specialityId) {
+    //                     $query->where('common_speciality_id', $specialityId);
+    //                 })
+    //                 ->with(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality', 'availability' => function ($query) {
+    //                 $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')->where('availability_type', 'appointment');
+    //             }]) // Eager load related data
+    //                 ->get();
+    //             break;
+    //     }
+    //     if ($serviceProvider->isEmpty()) {
+    //         return response()->json([
+    //             'message' => 'No service provider found for this speciality',
+    //             'status' => false,
+    //             'code' => 404
+    //         ], 404);
+    //     }
+
+    //     // Adding the unique customer count for each service provider (with completed appointments)
+    //     $serviceProvider->each(function ($provider) {
+    //         $completedAppointments = Appointment::where('provider_id', $provider->id)
+    //             // ->where('status', 'completed')
+    //             ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
+    //             ->distinct('customer_id')
+    //             ->count('customer_id');
+                
+
+    //         // Add the count to the provider's object
+    //         $provider->customers_count = $completedAppointments;
+    //         $provider->average_rating = $provider->averageRating();
+    //         $provider->review_count = $provider->reviewCount();
+    //     });
+    //     return response()->json([
+    //         'data' => $serviceProvider,
+    //         'count' => count($serviceProvider),
+    //         'message' => 'Service Provider list fetched successfully',
+    //         'status' => true,
+    //         'code' => 200
+    //     ], 200);
+    // }
+
+
     public function serviceProviderListBySpeciality($specialityId, $roleId)
     {
+        $authUser = auth()->user();
+
+        // Exclude the provider if the current logged-in user is a switched customer
+        $excludeProviderId = null;
+        if (Str::endsWith($authUser->phone, '5')) {
+            $originalProvider = User::where('phone', substr($authUser->phone, 0, -1))->first();
+            if ($originalProvider) {
+                $excludeProviderId = $originalProvider->id;
+            }
+        }
+
         $role = Role::find($roleId);
         switch (Str::lower($role->name)) {
             case 'doctor':
-                $serviceProvider = User::with(['doctorProfile', 'doctorProfile.doctorType', 'doctorProfile.doctorSpeciality', 'doctorProfile.doctorTitle', 'availability'=>function($query){ $query->select('day', 'provider_id','start_time','end_time','slot_duration')->where('availability_type', 'appointment');}])->where('role_id', $roleId)->whereHas('doctorProfile', function ($query) use ($specialityId) {
-                    $query->where('doctor_speciality_id', $specialityId);
-                })->get();
+                $serviceProvider = User::with([
+                    'doctorProfile',
+                    'doctorProfile.doctorType',
+                    'doctorProfile.doctorSpeciality',
+                    'doctorProfile.doctorTitle',
+                    'availability' => function ($query) {
+                        $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')
+                            ->where('availability_type', 'appointment');
+                    }
+                ])
+                    ->where('role_id', $roleId)
+                    ->when($excludeProviderId, function ($query) use ($excludeProviderId) {
+                        $query->where('id', '!=', $excludeProviderId);
+                    })
+                    ->whereHas('doctorProfile', function ($query) use ($specialityId) {
+                        $query->where('doctor_speciality_id', $specialityId);
+                    })
+                    ->get();
                 break;
+
             case 'lawyer':
-                $serviceProvider = User::with(['lawyerProfile', 'lawyerProfile.lawyerTitle', 'lawyerProfile.lawyerSpeciality', 'availability' => function ($query) {
-                    $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')->where('availability_type', 'appointment');
-                }])->where('role_id', $roleId)->whereHas('lawyerProfile', function ($query) use ($specialityId) {
-                    $query->where('lawyer_speciality_id', $specialityId);
-                })->get();
+                $serviceProvider = User::with([
+                    'lawyerProfile',
+                    'lawyerProfile.lawyerTitle',
+                    'lawyerProfile.lawyerSpeciality',
+                    'availability' => function ($query) {
+                        $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')
+                            ->where('availability_type', 'appointment');
+                    }
+                ])
+                    ->where('role_id', $roleId)
+                    ->when($excludeProviderId, function ($query) use ($excludeProviderId) {
+                        $query->where('id', '!=', $excludeProviderId);
+                    })
+                    ->whereHas('lawyerProfile', function ($query) use ($specialityId) {
+                        $query->where('lawyer_speciality_id', $specialityId);
+                    })
+                    ->get();
                 break;
+
             default:
-                $serviceProvider = User::where('role_id', $roleId)
+                $serviceProvider = User::with([
+                    'commonProfile',
+                    'commonProfile.uniqueIdentification',
+                    'commonProfile.commonSpeciality',
+                    'availability' => function ($query) {
+                        $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')
+                            ->where('availability_type', 'appointment');
+                    }
+                ])
+                    ->where('role_id', $roleId)
+                    ->when($excludeProviderId, function ($query) use ($excludeProviderId) {
+                        $query->where('id', '!=', $excludeProviderId);
+                    })
                     ->whereHas('commonProfile', function ($query) use ($specialityId) {
                         $query->where('common_speciality_id', $specialityId);
                     })
-                    ->with(['commonProfile', 'commonProfile.uniqueIdentification', 'commonProfile.commonSpeciality', 'availability' => function ($query) {
-                    $query->select('day', 'provider_id', 'start_time', 'end_time', 'slot_duration')->where('availability_type', 'appointment');
-                }]) // Eager load related data
                     ->get();
                 break;
         }
+
         if ($serviceProvider->isEmpty()) {
             return response()->json([
                 'message' => 'No service provider found for this speciality',
@@ -149,20 +258,18 @@ class ServiceProvider extends Controller
             ], 404);
         }
 
-        // Adding the unique customer count for each service provider (with completed appointments)
+        // Add unique customer count & ratings
         $serviceProvider->each(function ($provider) {
             $completedAppointments = Appointment::where('provider_id', $provider->id)
-                // ->where('status', 'completed')
                 ->whereRaw('LOWER(status) LIKE ?', ['%complete%'])
                 ->distinct('customer_id')
                 ->count('customer_id');
-                
 
-            // Add the count to the provider's object
             $provider->customers_count = $completedAppointments;
             $provider->average_rating = $provider->averageRating();
             $provider->review_count = $provider->reviewCount();
         });
+
         return response()->json([
             'data' => $serviceProvider,
             'count' => count($serviceProvider),
@@ -171,6 +278,7 @@ class ServiceProvider extends Controller
             'code' => 200
         ], 200);
     }
+
 
 
 

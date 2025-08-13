@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AppointmentController extends Controller
 {
@@ -144,6 +145,21 @@ class AppointmentController extends Controller
 
         if (!$customer || !$provider) {
             return response()->json(['error' => 'Invalid customer or provider'], 400);
+        }
+
+        // 🚫 Block switched-customer from booking with their own original provider
+        // "Switched" customers have the same phone as their provider + '5'
+        $authUser = auth()->user();
+        if ($authUser && Str::endsWith($authUser->phone ?? '', '5')) {
+            $originalPhone = substr($authUser->phone, 0, -1);
+            if (!empty($originalPhone)) {
+                $originalProvider = User::where('phone', $originalPhone)->first();
+                if ($originalProvider && (int)$originalProvider->id === (int)$provider->id) {
+                    return response()->json([
+                        'error' => 'You cannot book an appointment with your own provider account.'
+                    ], 422);
+                }
+            }
         }
 
         $roleName = $provider->role->name ?? null;
@@ -1269,20 +1285,20 @@ class AppointmentController extends Controller
         }
 
 
-       $appointments = Appointment::where('appointments.provider_id', $provider->id)
-    ->where('appointments.customer_id', $customer->id)
-    ->join('users', 'users.id', '=', 'appointments.customer_id')
-    ->join('customer_profiles', 'customer_profiles.user_id', '=', 'appointments.customer_id')
-    ->orderBy('appointments.appointment_time', 'desc')
-    ->select([
-        'appointments.*',
-        'users.name as customer_name',
-        'customer_profiles.gender',
-        'customer_profiles.dob',
-        'customer_profiles.address',
-        'customer_profiles.avatar',
-    ])
-    ->get();
+        $appointments = Appointment::where('appointments.provider_id', $provider->id)
+            ->where('appointments.customer_id', $customer->id)
+            ->join('users', 'users.id', '=', 'appointments.customer_id')
+            ->join('customer_profiles', 'customer_profiles.user_id', '=', 'appointments.customer_id')
+            ->orderBy('appointments.appointment_time', 'desc')
+            ->select([
+                'appointments.*',
+                'users.name as customer_name',
+                'customer_profiles.gender',
+                'customer_profiles.dob',
+                'customer_profiles.address',
+                'customer_profiles.avatar',
+            ])
+            ->get();
 
 
         return response()->json([
@@ -1368,6 +1384,8 @@ class AppointmentController extends Controller
         $appointment->status = 'cancelled';
         $appointment->save();
 
+        $appointment->customer->makeHidden('wallet');
+
         return response()->json([
             'message' => 'Appointment cancelled successfully and also refunded.',
             'appointment' => $appointment
@@ -1401,7 +1419,7 @@ class AppointmentController extends Controller
         $customer = $appointment->customer;
 
         // Availability check
-        $day = strtolower($newTime->format('l')); 
+        $day = strtolower($newTime->format('l'));
         $time = $newTime->format('H:i:s');
 
         $availability = ServiceProviderAvailability::where('provider_id', $provider->id)
