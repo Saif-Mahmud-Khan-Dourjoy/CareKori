@@ -1259,7 +1259,7 @@ class AppointmentController extends Controller
 
         $appointments = Appointment::where('provider_id', $providerId)
             ->whereDate('appointment_time', '=', $validatedDate)  // Filter by date only (ignores time)
-            ->with(['customer'])
+            ->with(['customer', 'customer.customerProfile'])
             ->get();
 
         // Return the appointments data in the response
