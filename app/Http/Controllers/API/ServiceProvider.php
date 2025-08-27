@@ -177,14 +177,14 @@ class ServiceProvider extends Controller
     {
         $authUser = auth()->user();
 
-        // Exclude the provider if the current logged-in user is a switched customer
-        $excludeProviderId = null;
-        if (Str::endsWith($authUser->phone, '5')) {
-            $originalProvider = User::where('phone', substr($authUser->phone, 0, -1))->first();
-            if ($originalProvider) {
-                $excludeProviderId = $originalProvider->id;
-            }
-        }
+       $excludeProviderId = null;
+
+if ($authUser && Str::endsWith($authUser->phone, '5')) {
+    $originalProvider = User::where('phone', substr($authUser->phone, 0, -1))->first();
+    if ($originalProvider) {
+        $excludeProviderId = $originalProvider->id;
+    }
+}
 
         $role = Role::find($roleId);
         switch (Str::lower($role->name)) {
@@ -331,7 +331,7 @@ class ServiceProvider extends Controller
     //             break;
     //     }
 
-    //     // 🔽 Filter out provider if the logged-in user is a customer with 12-digit phone ending in 5
+    //     // ðŸ”½ Filter out provider if the logged-in user is a customer with 12-digit phone ending in 5
     //     $loggedInUser = auth()->user();
 
 
