@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Broadcast;
 //     return true;
 // });
 
-Broadcast::channel('user.{uniqueUserId}', function ($user, $uniqueUserId) {
+Broadcast::channel('providerRegisteredNotification.{uniqueUserId}', function ($user, $uniqueUserId) {
     \Log::info('Broadcast auth user:', ['user' => $user ? $user->id : null, 'uniqueUserId' => $uniqueUserId]);
     return $user && $user->unique_user_id == $uniqueUserId;
 });
@@ -40,7 +40,7 @@ Broadcast::channel('public-channel', function () {
     return true; // Public channel — no auth required
 });
 
-Broadcast::channel('private-user.{uniqueUserId}', function ($user, $uniqueUserId) {
+Broadcast::channel('samplePrivateNotification.{uniqueUserId}', function ($user, $uniqueUserId) {
     // Only allow if authenticated user unique_user_id matches the channel param
     return $user->unique_user_id == $uniqueUserId;
 });

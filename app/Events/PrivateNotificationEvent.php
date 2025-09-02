@@ -29,12 +29,12 @@ class PrivateNotificationEvent implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        Log::info('ProviderRegisteredEvent broadcastOn() called');
-        return new PrivateChannel('private-user.' . $this->uniqueUserId);
+        // Log::info('ProviderRegisteredEvent broadcastOn() called');
+        return new PrivateChannel('samplePrivateNotification.' . $this->uniqueUserId);
     }
 
     public function broadcastAs()
     {
-        return 'PrivateNotificationEvent';
+        return 'SamplePrivateNotification';
     }
 }

@@ -28,7 +28,10 @@ use App\Http\Controllers\API\ModeratorProfile;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\UnAuthenticatedController;
+use App\Models\User;
+use App\Notifications\ProviderRegisteredNotification;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Notification;
 
 /*
 |--------------------------------------------------------------------------
@@ -277,5 +280,43 @@ Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::
 
 
 
-Route::get('/send-test-notification', action: [AdminController::class, 'sendNotification']);
+Route::get('/send-public-notification', action: [AdminController::class, 'sendNotification']);
 Route::middleware('auth:sanctum')->get('/send-private-notification', [AdminController::class, 'sendPrivateNotification']);
+Route::get('/send-test-notification', function () {
+    $admins = User::whereHas('role', function ($query) {
+        $query->whereIn('name', ['super admin', 'moderator']);
+    })->get();
+
+    $user= User::find(26); // Get the user you want to notify
+
+    // foreach ($admins as $admin) {
+    //     $admin->notify(new ProviderRegisteredNotification($user, $admin));
+    // }
+    // Notification::send($admins, new ProviderRegisteredNotification($user));
+
+    foreach ($admins as $admin) {
+        $admin->notify(new ProviderRegisteredNotification($user, $admin));
+    }
+
+    return response()->json(['message' => 'Notifications sent to admins.']);
+});
+
+Route::middleware('auth:sanctum')->get('/notifications', function (Request $request) {
+   $notifications = $request->user()->notifications;
+    $unreadProviderNotifications = $request->user()->unreadNotifications;
+    $readProviderNotifications = $request->user()->readNotifications;
+   return response()->json([
+       'all' => $notifications,
+       'unread' => $unreadProviderNotifications,
+       'read' => $readProviderNotifications
+   ]);
+});
+
+Route::middleware('auth:sanctum')->get('/notifications/{id}', function (Request $request, $id) {
+    $notification = $request->user()->notifications()->find($id);
+    if ($notification) {
+        $notification->markAsRead();
+    }
+
+    return response()->json(['message' => 'Notification marked as read', 'notification' => $notification]);
+});

@@ -190,6 +190,7 @@ class RegisterController extends Controller
         foreach ($admins as $admin) {
             $admin->notify(new ProviderRegisteredNotification($user, $admin));
         }
+        // Notification::send($admins, new ProviderRegisteredNotification($user));
     }
 
     private function createLawyerProfile(User $user, Request $request)
