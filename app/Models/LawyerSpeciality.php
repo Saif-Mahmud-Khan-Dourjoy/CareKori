@@ -11,4 +11,8 @@ class LawyerSpeciality extends Model
     protected $fillable = [
         'specialized_at',
     ];
+    public function lawyerProfiles()
+    {
+        return $this->hasMany(LawyerProfile::class, 'lawyer_speciality_id');
+    }
 }

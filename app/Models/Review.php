@@ -14,6 +14,7 @@ class Review extends Model
         'review',
         'rating',
         'status',
+        'appointment_id'
     ];
 
     public function customer()
@@ -24,5 +25,10 @@ class Review extends Model
     public function serviceProvider()
     {
         return $this->belongsTo(User::class, 'service_provider_id');
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class); // Define the relationship with the Appointment model
     }
 }

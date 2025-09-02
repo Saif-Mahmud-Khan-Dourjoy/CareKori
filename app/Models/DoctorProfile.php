@@ -9,7 +9,7 @@ class DoctorProfile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'doctor_type_id', 'doctor_speciality_id', 'doctor_title_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'registration_no', 'active_from', 'active_to', 'active_status','payment_type', 'payment_account'];
+    protected $fillable = ['user_id', 'doctor_type_id', 'doctor_speciality_id', 'doctor_title_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'registration_no', 'active_from', 'active_to', 'active_status', 'payment_type', 'payment_account', 'bank_name', 'account_title'];
 
     protected $table = 'doctor_profiles';
 
@@ -24,5 +24,9 @@ class DoctorProfile extends Model
     public function doctorTitle()
     {
         return $this->belongsTo(DoctorTitle::class);
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

@@ -9,7 +9,7 @@ class LawyerProfile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'lawyer_title_id', 'lawyer_speciality_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'practice_area', 'identification_no', 'bar_registration_no', 'active_from', 'active_to', 'active_status', 'payment_type', 'payment_account'];
+    protected $fillable = ['user_id', 'lawyer_title_id', 'lawyer_speciality_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'practice_area', 'identification_no', 'bar_registration_no', 'active_from', 'active_to', 'active_status', 'payment_type', 'payment_account', 'bank_name', 'account_title'];
     protected $table = 'lawyer_profiles';
 
 
@@ -21,5 +21,9 @@ class LawyerProfile extends Model
     public function lawyerSpeciality()
     {
         return $this->belongsTo(LawyerSpeciality::class);
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

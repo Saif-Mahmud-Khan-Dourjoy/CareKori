@@ -9,7 +9,7 @@ class CommonProfile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'common_speciality_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'active_from', 'active_to', 'active_status', 'payment_type', 'payment_account'];
+    protected $fillable = ['user_id', 'common_speciality_id', 'bio', 'pricing', 'availability', 'avatar', 'gender', 'dob', 'district', 'thana', 'identification_no', 'active_from', 'active_to', 'active_status', 'payment_type', 'payment_account', 'bank_name', 'account_title'];
 
     protected $table = 'common_profiles';
 

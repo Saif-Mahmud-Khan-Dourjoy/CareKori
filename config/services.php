@@ -13,6 +13,11 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'sslcommerz' => [
+        'store_id' => env('SSLCZ_STORE_ID'),
+        'store_password' => env('SSLCZ_STORE_PASSWORD'),
+        'sandbox' => env('SSLCZ_SANDBOX', true),
+    ],
 
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),

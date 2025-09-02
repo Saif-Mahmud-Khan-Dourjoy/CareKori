@@ -18,11 +18,10 @@ return new class extends Migration
             $table->enum('day', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']);
             $table->time('start_time'); // Start time of availability
             $table->time('end_time');   // End time of availability
-            $table->integer('slot_duration')->default(10); // Slot duration in minutes (default: 10 minutes)
+            $table->integer('slot_duration')->default(60); // Slot duration in minutes (default: 10 minutes)
             $table->timestamps();
 
             $table->foreign('provider_id')->references('id')->on('users')->onDelete('cascade');
-            
         });
     }
 

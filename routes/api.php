@@ -12,6 +12,7 @@ use App\Http\Controllers\API\DoctorSpecialityController;
 use App\Http\Controllers\API\DoctorTitle;
 use App\Http\Controllers\API\DoctorType;
 use App\Http\Controllers\API\Document\DocumentController;
+use App\Http\Controllers\API\EarningController;
 use App\Http\Controllers\API\LanguageStateController;
 use App\Http\Controllers\API\LawyerProfileController;
 use App\Http\Controllers\API\LawyerSpecialityController;
@@ -25,9 +26,15 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
+use App\Http\Controllers\API\OrderController;
+use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
+use App\Http\Controllers\API\SslCommerzController;
 use App\Http\Controllers\API\UnAuthenticatedController;
+use App\Http\Controllers\ComplaintController;
+use App\Models\Complaint;
+
 use App\Models\User;
 use App\Notifications\ProviderRegisteredNotification;
 use Illuminate\Support\Facades\Broadcast;
@@ -49,6 +56,31 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::post('/refresh-token', [LoginController::class, 'refreshToken']);
+    Route::get('/check-token', [LoginController::class, 'checkToken']);
+});
+
+Route::get('/test-ngrok', function (Request $request) {
+    return response()->json(['message' => 'This is a test route for ngrok']);
+});
+
+Route::prefix('sslcommerz')->group(function () {
+
+
+    Route::post('/success', [SslCommerzController::class, 'success'])->name('api.sslcommerz.success');
+    Route::post('/fail', [SslCommerzController::class, 'fail'])->name('api.sslcommerz.fail');
+    Route::post('/cancel', [SslCommerzController::class, 'cancel'])->name('api.sslcommerz.cancel');
+    Route::post('/ipn', [SslCommerzController::class, 'ipn'])->name('api.sslcommerz.ipn');
+});
+
+Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function () {
+
+    Route::prefix('sslcommerz')->group(function () {
+        Route::post('/initiate-payment', [SslCommerzController::class, 'initiatePayment']);
+        Route::post('/refund', [SslCommerzController::class, 'refund']);
+        Route::post('/refundStatus', [SslCommerzController::class, 'refundStatus']);
+    });
+
 
     //customer
 
@@ -62,17 +94,42 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/appointments', [AppointmentController::class, 'bookAppointment']);
         Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
-        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
-        Route::delete('/delete/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointmentWithinTime']);
+        Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
+        Route::get('/appointments/user/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForUser']);
+        Route::get('/appointments/user/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForUser']);
+
+
+        Route::post('/complain-store', [ComplaintController::class, 'store']);
+        Route::get('/user/provider/complain/{providerUniqueId}', [ComplaintController::class, 'getUserProviderComplaints']);
+
+
+
+
+
+
+        Route::get('/cancel/appointments/{appointmentId}', [AppointmentController::class, 'cancelAppointmentWithinTime']);
         Route::get('/check-availability/{provider_unique_user_id}/{appointment_date}', [AppointmentController::class, 'checkAvailability']);
 
 
         Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
-        Route::post('/phone/change/otp/verify', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
+        Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
+
+
+
+
+
 
 
         Route::get('/language-state', [LanguageStateController::class, 'getLanguageState']);
         Route::post('/language-state', [LanguageStateController::class, 'createOrUpdateLanguageState']);
+
+
+        Route::get('/document/list-provider-members/{roleId}', [DocumentController::class, 'listProviderMembers']);
+        Route::get('/providers/{providerUniqueId}/documents', [DocumentController::class, 'getDocumentsBetweenUsers']);
+        Route::get('/documents/{documentId}/download', [DocumentController::class, 'downloadDocument']);
+        Route::get('/documents/{providerId}/download-all', [DocumentController::class, 'downloadAllDocuments']);
+
+        Route::post('/check-promocode', [PromocodeController::class, 'check']);
     });
 
     //moderator
@@ -83,6 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/moderator/profile/image', [ModeratorProfile::class, 'addProfileImage']);
         Route::post('/update/moderator/profile/image', [ModeratorProfile::class, 'updateProfileImage']);
+        Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
     });
 
     //common provider
@@ -92,7 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/common-provider-profile', [CommonProvider::class, 'show']);
 
         Route::post('/common-provider/profile/image', [CommonProvider::class, 'addProfileImage']);
-        Route::post('/update/common-provider/profile/image', [CommonProvider::class, 'updateProfileImage']);
+        Route::put('/update/common-provider/profile/image', [CommonProvider::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/common-provider-profile/pricing', [CommonProvider::class, 'updatePricing']);
@@ -108,8 +166,32 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/providers/schedule', [ServiceProviderController::class, 'storeAvailability']);
         Route::put('/providers/schedule/{id}', [ServiceProviderController::class, 'updateAvailability']);
         Route::delete('/providers/schedule/{id}', [ServiceProviderController::class, 'deleteAvailability']);
-        Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
-        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+        Route::get('/appointments/provider/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByProvider']);
+
+
+        Route::get('/appointments/provider/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForProvider']);
+        Route::get('/appointments/provider/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForProvider']);
+        // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+        // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
+        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
+
+
+        Route::post('/provider/withdraw-request', [EarningController::class, 'requestWithdrawal']);
+
+        Route::get('/provider/earnings', [EarningController::class, 'getEarnings']);
+
+
+        Route::get('/appointments/{date}', [AppointmentController::class, 'getAppointmentsByDate']);
+
+        Route::get('/appointments/with-customer/{customerUniqueId}', [AppointmentController::class, 'appointmentsWithCustomer']);
+        Route::get('/provider/appointments/overview', [AppointmentController::class, 'providerOverview']);
+        Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancelAppointmentByProvider']);
+
+        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
+           Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
+        Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
+
+        Route::post('/complaints/provider', [ComplaintController::class, 'storeByProvider']);
     });
 
 
@@ -182,9 +264,8 @@ Route::middleware('auth:sanctum')->group(function () {
         //approve status
         Route::put('/approve-provider/{uniqueUserId}', [AdminController::class, 'approveProvider']);
 
-        Route::get('/appointments/user/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByUser']);
-        Route::get('/appointments/provider/{uniqueUserId}', [AppointmentController::class, 'getAppointmentsByProvider']);
-        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+
+
 
         //common provider speciality
         Route::post('/create-common-provider-speciality', [CommonProviderSpeciality::class, 'addCommonProviderSpeciality']);
@@ -192,6 +273,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialityById']);
         Route::post('/update/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'updateCommonProviderSpeciality']);
         Route::delete('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'deleteCommonProviderSpeciality']);
+
+
+
+
+        Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
+
+        //ADD BANNER
+
+        Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
+
+
+        // For role wised add banner 
+        Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
+
+        Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
+        Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
     });
 
 
@@ -201,7 +298,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/doctor-profile', [DoctorProfileCOntroller::class, 'show']);
 
         Route::post('/doctor/profile/image', [DoctorProfileCOntroller::class, 'addProfileImage']);
-        Route::post('/update/doctor/profile/image', [DoctorProfileCOntroller::class, 'updateProfileImage']);
+        Route::put('/update/doctor/profile/image', [DoctorProfileCOntroller::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/doctor-profile/pricing', [DoctorProfileController::class, 'updatePricing']);
@@ -216,7 +313,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/lawyer-profile', [LawyerProfileController::class, 'show']);
 
         Route::post('/lawyer/profile/image', [LawyerProfileController::class, 'addProfileImage']);
-        Route::post('/update/lawyer/profile/image', [LawyerProfileController::class, 'updateProfileImage']);
+        Route::put('/update/lawyer/profile/image', [LawyerProfileController::class, 'updateProfileImage']);
 
         // Update only pricing
         Route::put('/lawyer-profile/pricing', [LawyerProfileController::class, 'updatePricing']);
@@ -225,26 +322,35 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/lawyer-profile/availability', [LawyerProfileController::class, 'updateAvailability']);
     });
 
+    Route::middleware(['author:super admin,moderator'])->group(function () {
+        Route::post('/promocodes', [PromocodeController::class, 'store']);
+        Route::get('/promocodes/{id}', [PromocodeController::class, 'show']);
+        Route::put('/promocodes/{id}', [PromocodeController::class, 'update']);
+        Route::put('/promocodes/status/{id}', [PromocodeController::class, 'statusUpdate']);
+        Route::delete('/promocodes/{id}', [PromocodeController::class, 'destroy']);
+        Route::post('/promocodes/assign', [PromocodeController::class, 'assign']);
+    });
+
 
     // Documents
     Route::post('/document/upload', [DocumentController::class, 'upload']);
+
+    Route::post('/document/upload-multiple', [DocumentController::class, 'uploadMultiple']);
+
     Route::get('/document/user/{uniqueId}', [DocumentController::class, 'getVerificationDocuments']);
     Route::get('/document/user/{uniqueId}/public', [DocumentController::class, 'getPublicDocuments']);
     Route::get('/document/appointment/{id}', [DocumentController::class, 'getDocumentsByAppointment']);
     Route::get('/document/private/customer/{customerUniqueId}/provider/{providerUniqueId}', [DocumentController::class, 'getPrivateDocumentsForCustomer']);
     Route::get('/document/private/provider/{providerUniqueId}/customer/{customerUniqueId}', [DocumentController::class, 'getPrivateDocumentsForProvider']);
+    Route::get('/document/private/provider', [DocumentController::class, 'getPrivateDocuments']);
 
     // Review   
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::put('/reviews/{id}/status', [ReviewController::class, 'updateStatus']);
-    Route::get('/service-providers/{id}/reviews', [ReviewController::class, 'getApprovedReviews']);
+    Route::get('/service-providers/{serviceProviderUniqueId}/reviews', [ReviewController::class, 'getApprovedReviews']);
 
-    //ADD BANNER
 
-    Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
-    Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
-    Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
-
+    //
 
     // Common Provider Speciality
     Route::get('/common-provider-specialities/{roleId}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialitiesByRoleId']);
@@ -255,7 +361,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-    // You can add post/put/delete routes too
+
+    Route::get('/switch-user', [ServiceProvider::class, 'switchUser']);
+    // Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+    Route::post('update-password', [LoginController::class, 'updatePassword']);
+
+
+
+    Route::get('complain/provider/{providerUniqueId}', [ComplaintController::class, 'getComplaintsForProvider']);
+    Route::get('/appointments/{appointment_id}/complaints', [ComplaintController::class, 'getComplaintsForAppointmentByCustomer']);
+
+    Route::get('/order/history/{userUniqueId}', [OrderController::class, 'history']);
+
+
+    Route::get('/all/withdraw-requests', [EarningController::class, 'getAllWithdrawRequests']);
+
+    Route::get('/complaints/{appointmentId}', [ComplaintController::class, 'getComplaintForAppointmentByProvider']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);
@@ -276,6 +398,16 @@ Route::post('/otp/resend', [OtpController::class, 'resendOtp']);
 Route::get('/all-service-provider', [ServiceProvider::class, 'getServiceProvider']);
 Route::get('/service-provider-speciality/{roleId}', [ServiceProvider::class, 'serviceProviderSpeciality']);
 Route::get('/service-providers-list/{specialityId}/{roleId}', [ServiceProvider::class, 'serviceProviderListBySpeciality']);
+
+
+Route::post('/forget-password/otp/send', [OtpController::class, 'sendOtpForForgetPassword']);
+Route::post('/forget-password/otp/verify', [OtpController::class, 'verifyOtpForForgetPassword']);
+Route::post('/forget-password/update', [OtpController::class, 'updatePasswordAfterForget']);
+Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
+Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
+
+Route::get('role/banner/latest/{roleId}', [AddBannerController::class, 'getLatestByRole']);  // Get the latest banner
+Route::get('role/banner/all/{roleId}', [AddBannerController::class, 'getAllByRole']);  // Get all banners
 
 
 

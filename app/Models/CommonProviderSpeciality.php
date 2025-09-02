@@ -19,4 +19,9 @@ class CommonProviderSpeciality extends Model
     {
         return $this->belongsTo(Role::class, 'category_id');
     }
+    public function commonProfiles()
+    {
+        return $this->hasMany(CommonProfile::class, 'common_speciality_id');
+    }
+    
 }

@@ -125,7 +125,22 @@ class User extends Authenticatable
 
     public function languageState()
     {
-        return $this->hasOne(LanguageState::class);  // A user can have one wallet
+        return $this->hasOne(LanguageState::class);  
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function complaintsSubmitted()
+    {
+        return $this->hasMany(Complaint::class, 'user_id'); 
+    }
+
+    public function complaintsReceived()
+    {
+        return $this->hasMany(Complaint::class, 'provider_id'); 
     }
 
     public function hasRole($role)
@@ -140,8 +155,17 @@ class User extends Authenticatable
 
     public function averageRating()
     {
-        return $this->receivedReviews()
+        $avg_rating = $this->receivedReviews()
             ->where('status', 'approved')
             ->avg('rating');
+
+        return $avg_rating ? round($avg_rating, 2) : 0; // Return average rating rounded to 2 decimal places, or 0 if no ratings
+    }
+
+    public function reviewCount()
+    {
+        return $this->receivedReviews()
+            ->where('status', 'approved')
+            ->count();
     }
 }

@@ -10,46 +10,51 @@ use App\Models\CustomerProfile;
 use App\Models\DoctorProfile;
 use App\Models\LawyerProfile;
 use App\Models\OtpCode;
+use App\Models\ServiceProviderAvailability;
 use App\Notifications\ProviderRegisteredNotification;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
-
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class RegisterController extends Controller
 {
     public function register(Request $request)
     {
 
-        $request->validate([
-            'phone' => 'required|regex:/^01[3-9][0-9]{8}$/|unique:users,phone',
-            'password' => 'required|min:6',
-            'role' => 'required',
-            'name' => 'required|string',
-            'email' => 'nullable|email|unique:users,email',
-            // Add validation rules for role-specific fields
-        ]);
-
-
-        // $otp = OtpCode::where('phone', $request->phone)
-        //     ->where('is_verified', true)
-        //     ->where('expires_at', '>', now())
-        //     ->first();
-
-        // if (!$otp) {
-        //     return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
-        // }
-
-
-
-        DB::beginTransaction();
 
         try {
+            $request->validate([
+                'phone' => 'required|regex:/^01[3-9][0-9]{8}$/|unique:users,phone',
+                'password' => 'required|min:6',
+                'role' => 'required',
+                'name' => 'required|string',
+                'email' => 'nullable|email|unique:users,email',
+                // Add validation rules for role-specific fields
+            ]);
+
+
+            $otp = OtpCode::where('phone', $request->phone)
+                ->where('is_verified', true)
+                // ->where('expires_at', '>', now())
+                ->first();
+
+            if (!$otp) {
+                return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
+            }
+
+
+            DB::beginTransaction();
+
+
+
             $uniqueUserId = $this->generateUniqueUserId();
 
-   
+
 
             // Create the user and pass the generated unique_user_id
             $user = User::create([
@@ -62,8 +67,9 @@ class RegisterController extends Controller
             ]);
 
             $this->createProfile($user, $request);
-           
-
+            if (!in_array($user->role->name, ['customer', 'super admin', 'moderator'])) {
+                $this->createAvailability($user, $request);
+            }
 
             DB::commit();
 
@@ -100,20 +106,38 @@ class RegisterController extends Controller
 
     private function createCustomerProfile(User $user, Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'gender' => 'required|in:male,female,other',
             'dob' => 'required',
             'district' => 'required|string',
             'sub_district' => 'required|string',
-            'union_name' => 'required|string',
+            //'union_name' => 'required|string',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/customer'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/customer/' . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
 
         $user->customerProfile()->create([
             'gender' => $request->gender,
             'dob' => $request->dob,
             'district' => $request->district,
             'sub_district' => $request->sub_district,
-            'union_name' => $request->union_name,
+            'union_name' => $request->union_name ?? 'empty', //$request->union_name,
+            'avatar' => $validated['avatar'] ?? null, // Store the avatar URL
+            'address' => $request->address ?? null
         ]);
 
         $user->wallet()->create([
@@ -121,7 +145,7 @@ class RegisterController extends Controller
         ]);
 
         $user->languageState()->create([
-            'state' => 'bn', 
+            'state' => 'bn',
         ]);
     }
 
@@ -146,8 +170,29 @@ class RegisterController extends Controller
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
-            'payment_account' => 'nullable|string|max:255',
+            'payment_account' => 'nullable|required_if:payment_type,MFS|required_if:payment_type,BANK|string|max:255',
+            'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
+
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/doctor'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/doctor/' . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
+
+
 
         // Using null coalescing operator to handle nullable fields
         $bio = $validated['bio'] ?? null;
@@ -162,6 +207,9 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
+        $bankName = $validated['bank_name'] ?? null;
+        $accountTitle = $validated['account_title'] ?? null;
+        $avatar = $validated['avatar'] ?? null;
 
         // Create the doctor profile for the user
         $user->doctorProfile()->create([
@@ -180,6 +228,10 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
+            'bank_name' => $bankName,
+            'account_title' => $accountTitle,
+            'avatar' => $avatar,
+            'address' => $request->address ?? null,
         ]);
 
 
@@ -215,8 +267,26 @@ class RegisterController extends Controller
             'active_from' => 'nullable|date_format:H:i',
             'active_to' => 'nullable|date_format:H:i|after:active_from',
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
-            'payment_account' => 'nullable|string|max:255',
+            'payment_account' => 'nullable|required_if:payment_type,MFS|required_if:payment_type,BANK|string|max:255',
+            'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/lawyer'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/lawyer/' . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
 
         // Using null coalescing operator for nullable fields
         $bio = $validated['bio'] ?? null;
@@ -232,7 +302,12 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
-        // Validate the payment type and account if provided
+        $bankName = $validated['bank_name'] ?? null;
+        $accountTitle = $validated['account_title'] ?? null;
+        $avatar = $validated['avatar'] ?? null; // Store the avatar URL
+
+
+
 
         // Create the lawyer profile for the user
         $user->lawyerProfile()->create([
@@ -251,6 +326,10 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
+            'bank_name' => $bankName,
+            'account_title' => $accountTitle,
+            'avatar' => $avatar,
+            'address' => $request->address ?? null,
         ]);
     }
 
@@ -260,7 +339,7 @@ class RegisterController extends Controller
         $request->merge([
             'payment_type' => strtoupper($request->payment_type),
         ]);
-       
+
         // Validate the incoming request
         $validated = $request->validate([
             'common_speciality_id' => 'sometimes|nullable|exists:common_provider_specialities,id',
@@ -276,8 +355,27 @@ class RegisterController extends Controller
             'unique_identification_no' => 'required|string|max:255',
             'other_data' => 'nullable',  // Optional other data field (JSON or text)
             'payment_type' => 'nullable|string|max:10|in:MFS,BANK',
-            'payment_account' => 'nullable|string|max:255',
+            'payment_account' => 'nullable|required_if:payment_type,MFS|required_if:payment_type,BANK|string|max:255',
+            'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
         ]);
+
+
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path("images/{$user->role->name}"), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset("images/{$user->role->name}/" . $imageName);
+
+
+            $validated['avatar'] = $imageUrl; // Store the path in the validated data
+        } else {
+            $validated['avatar'] = null; // Set to null if no avatar is uploaded
+        }
 
         // Use null coalescing to handle missing fields
         $bio = $validated['bio'] ?? null;
@@ -291,7 +389,10 @@ class RegisterController extends Controller
         $active_to = $validated['active_to'] ?? null;
         $paymentType = $validated['payment_type'] ?? null;
         $paymentAccount = $validated['payment_account'] ?? null;
+        $bankName = $validated['bank_name'] ?? null;
+        $accountTitle = $validated['account_title'] ?? null;
         $unique_identification_no = $validated['unique_identification_no'];
+        $avatar = $validated['avatar'] ?? null; // Store the avatar URL
 
         // Process `other_data` to ensure it's in JSON format
         $otherData = $validated['other_data'] ?? null;
@@ -323,6 +424,10 @@ class RegisterController extends Controller
             'active_to' => $active_to,
             'payment_type' => $paymentType,
             'payment_account' => $paymentAccount,
+            'bank_name' => $bankName,
+            'account_title' => $accountTitle,
+            'avatar' => $avatar,
+            'address' => $request->address ?? null,
         ]);
 
         // Create the unique identification record for the user
@@ -350,5 +455,129 @@ class RegisterController extends Controller
     {
         // You can generate a random number between a range, or use a larger number to make it unique
         return rand(100000000, 999999999);  // Example: Generates a random 9-digit number
+    }
+
+
+
+    private function createAvailability(User $user, Request $request)
+    {
+        // Decode the JSON string
+        $availabilities = json_decode($request->input('availabilities'), true);
+
+        // Validate the decoded availabilities array
+        $validator = Validator::make(
+            ['availabilities' => $availabilities], // Wrap the availabilities into an array for validation
+            [
+                'availabilities' => 'required|array',
+                'availabilities.*.availability_type' => 'required|in:appointment,instant_consultation',
+                'availabilities.*.day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                'availabilities.*.time_slots' => 'required|array|min:1',
+                'availabilities.*.time_slots.*.start_time' => 'required|date_format:H:i',
+                'availabilities.*.time_slots.*.end_time' => 'required|date_format:H:i|after:availabilities.*.time_slots.*.start_time',
+            ],
+            [
+                // Custom messages
+                'availabilities.required' => 'Availabilities field is required.',
+                'availabilities.array' => 'Availabilities should be an array.',
+                'availabilities.*.availability_type.required' => 'Each availability block must have an availability type.',
+                'availabilities.*.availability_type.in' => 'Availability type must be either appointment or instant_consultation.',
+                'availabilities.*.day.required' => 'Each availability block must have a day.',
+                'availabilities.*.day.in' => 'Day must be one of the following: monday, tuesday, wednesday, thursday, friday, saturday, sunday.',
+                'availabilities.*.time_slots.required' => 'Each availability block must include a time_slots field.',
+                'availabilities.*.time_slots.array' => 'The time_slots field must be an array.',
+                'availabilities.*.time_slots.min' => 'Each availability block must contain at least one time slot.',
+                'availabilities.*.time_slots.*.start_time.required' => 'Start time is required for each time slot.',
+                'availabilities.*.time_slots.*.start_time.date_format' => 'Start time must be in the format H:i.',
+                'availabilities.*.time_slots.*.end_time.required' => 'End time is required for each time slot.',
+                'availabilities.*.time_slots.*.end_time.date_format' => 'End time must be in the format H:i.',
+                'availabilities.*.time_slots.*.end_time.after' => 'End time must be after the start time.',
+            ]
+        );
+
+        // Check if validation fails
+        if ($validator->fails()) {
+            // return response()->json(['errors' => $validator->errors()], 422);
+
+            throw new ValidationException($validator);  // This will throw the error and Laravel will automatically return the response
+
+        }
+        // Continue processing availabilities if validation passes
+        foreach ($availabilities as $availabilityBlock) {
+            foreach ($availabilityBlock['time_slots'] as $slot) {
+
+                $carbon = Carbon::now(env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+                $todayDate = $carbon->format('Y-m-d');
+                $startTimeInDhaka = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . $slot['start_time'], env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+                $endTimeInDhaka = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . $slot['end_time'], env('PROVIDER_TIMEZONE', 'Asia/Dhaka'));
+
+                $startTimeInUTC = $startTimeInDhaka->copy()->setTimezone(env('CUSTOMER_TIMEZONE', 'UTC'));
+                $endTimeInUTC = $endTimeInDhaka->copy()->setTimezone(env('CUSTOMER_TIMEZONE', 'UTC'));
+
+                $startDay = strtolower($availabilityBlock['day']);
+                $endDay = $startDay;
+
+
+                if ($startTimeInUTC->toDateString() < $startTimeInDhaka->toDateString()) {
+                    $startDay = $this->getPreviousDay($startDay);
+                }
+
+
+                if ($endTimeInUTC->toDateString() < $endTimeInDhaka->toDateString()) {
+                    $endDay = $this->getPreviousDay($endDay);
+                }
+
+
+                if ($startDay !== $endDay) {
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $startDay,
+                        'start_time' => $startTimeInUTC->toTimeString(),
+                        'end_time' => $startTimeInUTC->copy()->endOfDay()->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $endDay,
+                        'start_time' => $endTimeInUTC->copy()->startOfDay()->toTimeString(),
+                        'end_time' => $endTimeInUTC->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+                } else {
+
+                    ServiceProviderAvailability::create([
+                        'provider_id' => $user->id,
+                        'availability_type' => $availabilityBlock['availability_type'],
+                        'day' => $startDay,
+                        'start_time' => $startTimeInUTC->toTimeString(),
+                        'end_time' => $endTimeInUTC->toTimeString(),
+                        'slot_duration' => $availabilityBlock['slot_duration'] ?? env('SLOT_DURATION', 60),
+                    ]);
+                }
+            }
+        }
+
+        // return response()->json(['message' => 'Availabilities stored successfully']);
+
+    }
+
+
+    public function getPreviousDay($currentDay)
+    {
+        $days = [
+            'monday' => 'sunday',
+            'tuesday' => 'monday',
+            'wednesday' => 'tuesday',
+            'thursday' => 'wednesday',
+            'friday' => 'thursday',
+            'saturday' => 'friday',
+            'sunday' => 'saturday',
+        ];
+
+        return $days[$currentDay];
     }
 }
