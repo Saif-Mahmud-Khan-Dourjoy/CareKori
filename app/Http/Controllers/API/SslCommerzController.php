@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Notifications\CommonNotification;
 use App\Services\SslCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -289,6 +290,8 @@ class SslCommerzController extends Controller
             if ($order->user && $order->user->wallet) {
                 $order->user->wallet->increment('balance', $order->amount);
             }
+
+            $order->user->notify(new CommonNotification($order->user,  "Payment Successful", "Your payment amount {$order->amount} has been successfully processed."));
 
             return response()->json([
                 'message' => 'Payment verified successfully',

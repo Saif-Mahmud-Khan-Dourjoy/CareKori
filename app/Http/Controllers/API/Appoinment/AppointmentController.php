@@ -8,6 +8,8 @@ use App\Models\AppointmentSlot;
 use App\Models\Promocode;
 use App\Models\ServiceProviderAvailability;
 use App\Models\User;
+use App\Notifications\AppointmentNotification;
+use App\Notifications\CommonNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -147,7 +149,7 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'Invalid customer or provider'], 400);
         }
 
-        // 🚫 Block switched-customer from booking with their own original provider
+       
         // "Switched" customers have the same phone as their provider + '5'
         $authUser = auth()->user();
         if ($authUser && Str::endsWith($authUser->phone ?? '', '5')) {
@@ -213,13 +215,27 @@ class AppointmentController extends Controller
         }
 
         $day = strtolower($appointmentTime->format('l'));
-        $availability = ServiceProviderAvailability::where('provider_id', $provider->id)->where('day', $day)->first();
+        $availabilities = ServiceProviderAvailability::where('provider_id', $provider->id)
+            ->where('day', $day)
+            ->get();
+
+        $validSlot = false;
+
+        foreach ($availabilities as $availability) {
+            $start = Carbon::parse($appointmentTime->toDateString() . ' ' . $availability->start_time, 'UTC');
+            $end   = Carbon::parse($appointmentTime->toDateString() . ' ' . $availability->end_time, 'UTC');
+
+            if ($appointmentTime->between($start, $end)) {
+                $validSlot = true;
+                break;
+            }
+        }
 
         $slotTaken = Appointment::where('provider_id', $provider->id)
             ->where('appointment_time', $appointmentTime)
             ->where('status', '!=', 'cancelled')->exists();
 
-        if (!$availability || $slotTaken) {
+        if (!$validSlot  || $slotTaken) {
             return response()->json(['error' => 'Provider is not available on this time'], 400);
         }
 
@@ -237,6 +253,15 @@ class AppointmentController extends Controller
         ]);
 
         $customer->wallet->decrement('balance', $finalPrice);
+
+       
+
+        // $provider->notify(new AppointmentNotification($provider, $customer, $appointment, "booked"));
+        // $customer->notify(new AppointmentNotification($customer, $provider, $appointment, "booked"));
+
+        $provider->notify(new CommonNotification($provider,  "Appointment Booking", "{$customer->name} has booked an appointment with you at {$appointmentTime->toDateTimeString()} UTC"));
+        $customer->notify(new CommonNotification($customer,  "Appointment Booking", "Your appointment with {$provider->name} has been successfully booked at {$appointmentTime->toDateTimeString()} UTC"));
+
 
         return response()->json([
             'message' => 'Appointment booked successfully',
@@ -774,6 +799,7 @@ class AppointmentController extends Controller
 
         $appointment = Appointment::findOrFail($appointmentId);
 
+        $appointmentTimeUTC = Carbon::parse($appointment->appointment_time, 'UTC');
 
         if (!$appointment->is_money_back) {
 
@@ -789,6 +815,10 @@ class AppointmentController extends Controller
 
 
         $appointment->delete();
+
+        $appointment->provider->notify(new CommonNotification($appointment->provider,  "Appointment Deletion", "Your appointment with {$appointment->customer->name} at {$appointmentTimeUTC->format('Y-m-d H:i:s')} UTC has been deleted"));
+        $appointment->customer->notify(new CommonNotification($appointment->customer,  "Appointment Deletion", "Your appointment with {$appointment->provider->name} at {$appointmentTimeUTC->format('Y-m-d H:i:s')} UTC has been deleted"));
+
 
         return response()->json(['message' => 'Appointment deleted successfully']);
     }
@@ -822,7 +852,7 @@ class AppointmentController extends Controller
         $validated = $request->validate([
             'remarks' => 'nullable|string|max:500', // Optional remarks field
         ]);
-        $appointment = Appointment::with(['customer.wallet'])->find($appointmentId);
+        $appointment = Appointment::with(['customer', 'customer.wallet', 'provider'])->find($appointmentId);
 
         if (!$appointment) {
             return response()->json(['error' => 'Appointment not found'], 404);
@@ -871,6 +901,14 @@ class AppointmentController extends Controller
             'remarks' => $remarks,
         ]);
 
+        // $appointment->provider->notify(new AppointmentNotification($appointment->provider, $appointment->customer, $appointment, "Cancelled"));
+        // $appointment->customer->notify(new AppointmentNotification($appointment->customer, $appointment->provider, $appointment, "Cancelled"));
+
+        $appointment->provider->notify(new CommonNotification($appointment->provider,  "Appointment Canceling", "{$appointment->customer->name} has cancelled their appointment with you at {$appointmentTimeUTC->format('Y-m-d H:i:s')} UTC"));
+        $appointment->customer->notify(new CommonNotification($appointment->customer,  "Appointment Canceling", "Your appointment with {$appointment->provider->name} at {$appointmentTimeUTC->format('Y-m-d H:i:s')} UTC has been cancelled"));
+
+
+
         return response()->json([
             'message' => 'Appointment cancelled and money refunded successfully.'
         ]);
@@ -880,6 +918,7 @@ class AppointmentController extends Controller
 
     public function updateAppointment(Request $request, $appointmentId)
     {
+        
         $validated = $request->validate([
             'appointment_time' => 'sometimes|nullable|date_format:Y-m-d H:i:s',
             'status' => 'sometimes|nullable|in:confirmed,cancelled,completed',
@@ -909,11 +948,29 @@ class AppointmentController extends Controller
 
             $day = strtolower($newTime->format('l'));
 
-            $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
-                ->where('day', $day)
-                ->first();
+            // $availability = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
+            //     ->where('day', $day)
+            //     ->first();
 
-            if (!$availability) {
+           
+
+            $availabilities = ServiceProviderAvailability::where('provider_id', $appointment->provider_id)
+                ->where('day', $day)
+                ->get();
+
+            $validSlot = false;
+
+            foreach ($availabilities as $availability) {
+                $start = Carbon::parse($newTime->toDateString() . ' ' . $availability->start_time, 'UTC');
+                $end   = Carbon::parse($newTime->toDateString() . ' ' . $availability->end_time, 'UTC');
+
+                if ($newTime->between($start, $end)) {
+                    $validSlot = true;
+                    break;
+                }
+            }
+
+            if (!$validSlot) {
                 return response()->json(['error' => 'Provider is not available on this day'], 400);
             }
 
@@ -941,12 +998,17 @@ class AppointmentController extends Controller
                     break;
 
                 case 'cancelled':
-                    $appointment->delete();
-                    return response()->json(['message' => 'Appointment cancelled successfully']);
+                    $appointment->status = $validated['status'];
+                    break;
             }
         }
 
-        $appointment->save();
+        $appointment->update();
+
+        $app_time= Carbon::parse($appointment->appointment_time,'UTC')->format('Y-m-d H:i:s');
+
+        $appointment->provider->notify(new CommonNotification($appointment->provider,  "Appointment Update", "Your appointment with {$appointment->customer->name} has been updated, time: {$app_time} UTC and status: {$appointment->status}"));
+        $appointment->customer->notify(new CommonNotification($appointment->customer,  "Appointment Update", "Your appointment with {$appointment->provider->name} has been updated, time: {$app_time} UTC and status: {$appointment->status}"));
 
         return response()->json([
             'message' => 'Appointment updated successfully',
@@ -1035,6 +1097,14 @@ class AppointmentController extends Controller
 
             $appointment->update(['status' => $validated['status']]);
         }
+
+        $app_time = Carbon::parse($appointment->appointment_time, 'UTC')->format('Y-m-d H:i:s');
+
+        $appointment->provider->notify(new CommonNotification($appointment->provider,  "Appointment Update", "Your appointment with {$appointment->customer->name} has been updated, time: {$app_time} UTC and status: {$appointment->status}"));
+        $appointment->customer->notify(new CommonNotification($appointment->customer,  "Appointment Update", "Your appointment with {$appointment->provider->name} has been updated, time: {$app_time} UTC and status: {$appointment->status}"));
+
+
+
 
         return response()->json([
             'message' => 'Appointment Status updated successfully',
@@ -1386,6 +1456,12 @@ class AppointmentController extends Controller
 
         $appointment->customer->makeHidden('wallet');
 
+        $app_time = Carbon::parse($appointment->appointment_time, 'UTC')->format('Y-m-d H:i:s');
+
+        $appointment->provider->notify(new CommonNotification($appointment->provider,  "Appointment Cancelation", "Your appointment with {$appointment->customer->name} at {$app_time} UTC has been cancelled."));
+        $appointment->customer->notify(new CommonNotification($appointment->customer,  "Appointment Cancelation", "Your appointment with {$appointment->provider->name} at {$app_time} UTC has been cancelled."));
+
+
         return response()->json([
             'message' => 'Appointment cancelled successfully and also refunded.',
             'appointment' => $appointment
@@ -1393,36 +1469,108 @@ class AppointmentController extends Controller
     }
 
 
+    // public function rescheduleAppointment(Request $request, $id)
+    // {
+    //     $request->validate([
+    //         'new_time' => 'required|date|after:now|date_format:Y-m-d H:i:s',
+    //     ]);
+
+    //     $provider = Auth::user();
+
+    //     // Parse and convert to UTC
+    //     $newTime = Carbon::createFromFormat('Y-m-d H:i:s', $request->new_time, 'UTC');
+
+    //     $appointment = Appointment::where('id', $id)
+    //         ->where('provider_id', $provider->id)
+    //         ->first();
+
+    //     if (!$appointment) {
+    //         return response()->json(['error' => 'Appointment not found'], 404);
+    //     }
+
+    //     if ($appointment->status !== 'confirmed') {
+    //         return response()->json(['error' => 'Only confirmed appointments can be rescheduled.'], 400);
+    //     }
+
+    //     $customer = $appointment->customer;
+
+    //     // Availability check
+    //     $day = strtolower($newTime->format('l'));
+    //     $time = $newTime->format('H:i:s');
+
+    //     $availability = ServiceProviderAvailability::where('provider_id', $provider->id)
+    //         ->where('availability_type', 'appointment')
+    //         ->where('day', $day)
+    //         ->where('start_time', '<=', $time)
+    //         ->where('end_time', '>', $time)
+    //         ->first();
+
+    //     if (!$availability) {
+    //         return response()->json(['error' => 'The selected time is not within provider availability.'], 400);
+    //     }
+
+    //     // Slot check
+    //     $slotTaken = Appointment::where('provider_id', $provider->id)
+    //         ->where('appointment_time', $newTime)
+    //         ->where('status', '!=', 'cancelled')
+    //         ->exists();
+
+    //     if ($slotTaken) {
+    //         return response()->json(['error' => 'This time slot is already taken.'], 400);
+    //     }
+
+    //     // Delete old cancelled
+    //     Appointment::where('customer_id', $customer->id)
+    //         ->where('provider_id', $provider->id)
+    //         ->where('appointment_time', $newTime)
+    //         ->where('status', 'cancelled')
+    //         ->delete();
+
+    //     // Save new appointment time
+    //     $appointment->appointment_time = $newTime;
+    //     $appointment->save();
+
+    //     return response()->json([
+    //         'message' => 'Appointment rescheduled successfully.',
+    //         'appointment' => $appointment
+    //     ]);
+    // }
+
     public function rescheduleAppointment(Request $request, $id)
     {
         $request->validate([
             'new_time' => 'required|date|after:now|date_format:Y-m-d H:i:s',
         ]);
 
-        $provider = Auth::user();
+        $user = Auth::user();
 
         // Parse and convert to UTC
         $newTime = Carbon::createFromFormat('Y-m-d H:i:s', $request->new_time, 'UTC');
 
+        // Find appointment where user is either provider or customer
         $appointment = Appointment::where('id', $id)
-            ->where('provider_id', $provider->id)
+            ->where(function ($query) use ($user) {
+                $query->where('provider_id', $user->id)
+                    ->orWhere('customer_id', $user->id);
+            })
             ->first();
 
         if (!$appointment) {
-            return response()->json(['error' => 'Appointment not found'], 404);
+            return response()->json(['error' => 'Appointment not found or unauthorized'], 404);
         }
 
         if ($appointment->status !== 'confirmed') {
             return response()->json(['error' => 'Only confirmed appointments can be rescheduled.'], 400);
         }
 
-        $customer = $appointment->customer;
+        $providerId = $appointment->provider_id;
+        $customerId = $appointment->customer_id;
 
-        // Availability check
+        // ✅ Provider availability check
         $day = strtolower($newTime->format('l'));
         $time = $newTime->format('H:i:s');
 
-        $availability = ServiceProviderAvailability::where('provider_id', $provider->id)
+        $availability = ServiceProviderAvailability::where('provider_id', $providerId)
             ->where('availability_type', 'appointment')
             ->where('day', $day)
             ->where('start_time', '<=', $time)
@@ -1433,8 +1581,8 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'The selected time is not within provider availability.'], 400);
         }
 
-        // Slot check
-        $slotTaken = Appointment::where('provider_id', $provider->id)
+        // ✅ Slot check
+        $slotTaken = Appointment::where('provider_id', $providerId)
             ->where('appointment_time', $newTime)
             ->where('status', '!=', 'cancelled')
             ->exists();
@@ -1443,16 +1591,21 @@ class AppointmentController extends Controller
             return response()->json(['error' => 'This time slot is already taken.'], 400);
         }
 
-        // Delete old cancelled
-        Appointment::where('customer_id', $customer->id)
-            ->where('provider_id', $provider->id)
+        // ✅ Delete previously cancelled appointment in same slot
+        Appointment::where('customer_id', $customerId)
+            ->where('provider_id', $providerId)
             ->where('appointment_time', $newTime)
             ->where('status', 'cancelled')
             ->delete();
 
-        // Save new appointment time
+        // ✅ Reschedule
         $appointment->appointment_time = $newTime;
         $appointment->save();
+
+      
+
+        $appointment->provider->notify(new CommonNotification($appointment->provider,  "Appointment Re-Schedule", "Your appointment with {$appointment->customer->name}  has been rescheduled at {$newTime->format('Y-m-d H:i:s')} UTC."));
+        $appointment->customer->notify(new CommonNotification($appointment->customer,  "Appointment Re-Schedule", "Your appointment with {$appointment->provider->name} at {$newTime->format('Y-m-d H:i:s')} UTC has been rescheduled."));
 
         return response()->json([
             'message' => 'Appointment rescheduled successfully.',

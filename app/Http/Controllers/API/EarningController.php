@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\ProviderWithdrawal;
+use App\Notifications\CommonNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -204,6 +205,10 @@ class EarningController extends Controller
 
         $withdrawal = ProviderWithdrawal::findOrFail($id);
 
+        if(!$withdrawal){
+            return response()->json(['error' => 'Withdrawal request not found.'], 404);
+        }
+
 
 
 
@@ -215,6 +220,14 @@ class EarningController extends Controller
             'account_details' => $validated['account_details'] ?? null,
 
         ]);
+        $user= $withdrawal->provider;
+        if($validated['status'] === 'success'){
+            
+            $user->notify(new CommonNotification($user,  "Withdrawal Successful", "Your withdrawal request of amount {$withdrawal->amount} has been processed successfully."));
+        }else{
+            
+            $user->notify(new CommonNotification($user,  "Withdrawal Failed", "Your withdrawal request of amount {$withdrawal->amount} has been failed. Please contact support."));
+        }
 
         return response()->json([
             'message' => 'Withdrawal status updated successfully.',

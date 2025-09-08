@@ -44,3 +44,13 @@ Broadcast::channel('samplePrivateNotification.{uniqueUserId}', function ($user, 
     // Only allow if authenticated user unique_user_id matches the channel param
     return $user->unique_user_id == $uniqueUserId;
 });
+
+Broadcast::channel('appointmentNotification.{uniqueUserId}', function ($user, $uniqueUserId) {
+    \Log::info('Broadcast auth user:', ['user' => $user ? $user->id : null, 'uniqueUserId' => $uniqueUserId]);
+    return $user && $user->unique_user_id == $uniqueUserId;
+});
+
+Broadcast::channel('commmonNotification.{uniqueUserId}', function ($user, $uniqueUserId) {
+    \Log::info('Broadcast auth user:', ['user' => $user ? $user->id : null, 'uniqueUserId' => $uniqueUserId]);
+    return $user && $user->unique_user_id == $uniqueUserId;
+});

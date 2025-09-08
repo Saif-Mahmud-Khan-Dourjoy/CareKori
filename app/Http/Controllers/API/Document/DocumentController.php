@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\PrivateDocument;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\CommonNotification;
 use Illuminate\Http\Request;
 use ZipArchive;
 
@@ -54,6 +55,10 @@ class DocumentController extends Controller
             ]);
         }
 
+
+       $createdForUser = User::find($validated['created_for']);
+
+        $createdForUser->notify(new CommonNotification($createdForUser,  "New Document Uploaded", "New document has been uploaded for you."));
 
         return response()->json(['message' => 'Document uploaded successfully', 'document' => $document], 201);
     }
@@ -107,6 +112,10 @@ class DocumentController extends Controller
 
             $uploadedDocuments[] = $document;
         }
+
+        $createdForUser = User::find($validated['created_for']);
+
+        $createdForUser->notify(new CommonNotification($createdForUser,  "New Document Uploaded", "New document has been uploaded for you."));
 
         return response()->json([
             'message' => 'Documents uploaded successfully',

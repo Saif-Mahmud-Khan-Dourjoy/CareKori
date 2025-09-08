@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Appointment extends Model
 {
     use HasFactory;
-    protected $fillable = ['customer_id', 'provider_id', 'appointment_time', 'status', 'price', 'is_money_back', 'is_cancel_by_user'];
+    protected $fillable = ['customer_id', 'provider_id', 'appointment_time', 'status', 'price', 'is_money_back', 'is_cancel_by_user', 'remarks'];
 
     protected $casts = [
         'appointment_time' => 'datetime',

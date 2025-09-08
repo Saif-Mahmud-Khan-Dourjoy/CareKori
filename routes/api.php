@@ -130,6 +130,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/documents/{providerId}/download-all', [DocumentController::class, 'downloadAllDocuments']);
 
         Route::post('/check-promocode', [PromocodeController::class, 'check']);
+        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
     });
 
     //moderator
@@ -172,7 +173,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/appointments/provider/upcoming/{uniqueUserId}', [AppointmentController::class, 'upcomingAppointmentsForProvider']);
         Route::get('/appointments/provider/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForProvider']);
         // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
-        // Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
+        Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
         Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
 
 
