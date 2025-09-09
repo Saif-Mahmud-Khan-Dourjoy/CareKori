@@ -31,6 +31,7 @@ use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
 use App\Http\Controllers\API\SslCommerzController;
+use App\Http\Controllers\API\StreamController;
 use App\Http\Controllers\API\UnAuthenticatedController;
 use App\Http\Controllers\ComplaintController;
 use App\Models\Complaint;
@@ -379,6 +380,17 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::get('/all/withdraw-requests', [EarningController::class, 'getAllWithdrawRequests']);
 
     Route::get('/complaints/{appointmentId}', [ComplaintController::class, 'getComplaintForAppointmentByProvider']);
+
+
+
+    // 1) Signed-in user gets a Stream user token
+    Route::post('/stream/token', [StreamController::class, 'issueUserToken']);
+
+    // 2) Upsert one or more users into Stream (used internally; can be admin-only if you prefer)
+    Route::post('/stream/users/upsert', [StreamController::class, 'upsertUsers']);
+
+    // 3) Doctor-only: start a call for a confirmed & upcoming appointment they own
+    Route::post('/stream/calls/{appointmentId}/start', [StreamController::class, 'startCall']);
 });
 
 Route::post('/otp/send', [OtpController::class, 'sendOtp']);

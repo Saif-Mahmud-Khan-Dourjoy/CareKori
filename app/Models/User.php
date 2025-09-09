@@ -148,6 +148,13 @@ class User extends Authenticatable
         return $this->role && Str::lower($this->role->name) === $role;
     }
 
+    public function isProvider(): bool
+    {
+        $name = Str::lower($this->role->name ?? '');
+        $nonProviders = ['customer', 'moderator', 'super admin', 'super_admin']; // handle both spellings
+        return $name !== '' && !in_array($name, $nonProviders, true);
+    }
+
     public static function findByUniqueUserId($uniqueUserId)
     {
         return self::where('unique_user_id', $uniqueUserId)->first();

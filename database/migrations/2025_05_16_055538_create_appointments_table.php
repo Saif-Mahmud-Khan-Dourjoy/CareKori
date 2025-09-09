@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->unsignedBigInteger('customer_id');
             $table->unsignedBigInteger('provider_id');
-            $table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled']);
+            $table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled','interrupted','inprogress'])->default('pending');
             $table->decimal('price', 10, 2); // Price of the appointment
             $table->dateTime('appointment_time');
             $table->timestamps();
