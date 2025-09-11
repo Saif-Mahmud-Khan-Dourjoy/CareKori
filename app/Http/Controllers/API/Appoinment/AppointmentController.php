@@ -356,6 +356,7 @@ class AppointmentController extends Controller
 
             if ($roleName === 'doctor') {
                 $provider->load([
+                    'availability',
                     'doctorProfile',
                     'doctorProfile.doctorType',
                     'doctorProfile.doctorSpeciality',
@@ -363,12 +364,14 @@ class AppointmentController extends Controller
                 ]);
             } elseif ($roleName === 'lawyer') {
                 $provider->load([
+                    'availability',
                     'lawyerProfile',
                     'lawyerProfile.lawyerSpeciality',
                     'lawyerProfile.lawyerTitle'
                 ]);
             } else {
                 $provider->load([
+                    'availability',
                     'commonProfile',
                     'commonProfile.uniqueIdentification',
                     'commonProfile.commonSpeciality'
