@@ -194,6 +194,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
 
         Route::post('/complaints/provider', [ComplaintController::class, 'storeByProvider']);
+
+        Route::put('/provider/appointments/{appointment}/conduct-status', [AppointmentController::class, 'updateConductStatus']);
     });
 
 

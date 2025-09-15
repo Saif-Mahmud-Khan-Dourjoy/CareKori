@@ -1615,4 +1615,28 @@ class AppointmentController extends Controller
             'appointment' => $appointment
         ]);
     }
+
+    public function updateConductStatus(Request $request, Appointment $appointment)
+    {
+        $user = $request->user();
+
+       
+        if ((int) $appointment->provider_id !== (int) $user->id) {
+            return response()->json(['error' => 'You are not the provider of this appointment.'], 403);
+        }
+
+        $validated = $request->validate([
+            'conduct_success_status' => 'required|boolean', 
+        ]);
+
+        $appointment->update([
+            'conduct_success_status' => (bool) $validated['conduct_success_status'],
+        ]);
+
+        return response()->json([
+            'message' => 'Conduct status updated.',
+            'appointment' => $appointment->fresh(),
+        ]);
+    }
+
 }

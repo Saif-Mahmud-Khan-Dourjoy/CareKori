@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Document;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\Document;
 use App\Models\PrivateDocument;
 use App\Models\Role;
@@ -29,6 +30,27 @@ class DocumentController extends Controller
 
         // Get the authenticated user
         $user = $request->user();
+
+        if ($validated['type'] === 'private') {
+            $appointment = Appointment::find($validated['appointment_id']);
+
+           
+            if (!$appointment) {
+                return response()->json(['error' => 'Appointment not found.'], 404);
+            }
+
+            $createdForId = (int) $validated['created_for'];
+            $belongsToAppt = in_array($createdForId, [(int)$appointment->customer_id, (int)$appointment->provider_id], true);
+
+            if (!$belongsToAppt) {
+                return response()->json([
+                    'error' => 'The selected user (created_for) is not part of the specified appointment.'
+                ], 422);
+            }
+
+            
+
+        }
 
         // Generate a unique file name
         $documentName = time() . '_' . $user->id . '_' . uniqid() . '.' . $request->document->getClientOriginalExtension();
@@ -80,6 +102,25 @@ class DocumentController extends Controller
         ]);
 
         $user = $request->user();
+
+        if ($validated['type'] === 'private') {
+            $appointment = Appointment::find($validated['appointment_id']);
+
+            if (!$appointment) {
+                return response()->json(['error' => 'Appointment not found.'], 404);
+            }
+
+            $createdForId = (int) $validated['created_for'];
+            $belongsToAppt = in_array($createdForId, [(int)$appointment->customer_id, (int)$appointment->provider_id], true);
+
+            if (!$belongsToAppt) {
+                return response()->json([
+                    'error' => 'The selected user (created_for) is not part of the specified appointment.'
+                ], 422);
+            }
+
+            
+        }
 
         $uploadedDocuments = [];
 

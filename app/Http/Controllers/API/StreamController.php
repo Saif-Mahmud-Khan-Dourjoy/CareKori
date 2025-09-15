@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
@@ -183,14 +184,30 @@ class StreamController extends Controller
         
         $when = Carbon::createFromFormat('Y-m-d H:i:s', $appointment->getRawOriginal('appointment_time'), 'UTC');
         $nowUtc = Carbon::now('UTC');
-        // if (! $when->isFuture()) {
-        //     return response()->json(['error' => 'Appointment time is not upcoming.'], 422);
+       
+
+        if ($nowUtc->lt($when)) {
+            return response()->json(['error' => 'You can start the call only at or after the appointment time.'], 422);
+        }
+
+        // Block if the window ends
+
+        // $slotMinutes = $this->resolveSlotDurationForAppointment(
+        //     providerId: (int) $appointment->provider_id,
+        //     appointmentStartUtc: $when
+        // );
+
+        // if ($slotMinutes === null) {
+           
+        //     return response()->json(['error' => 'No matching provider availability for this appointment time.'], 422);
+           
         // }
 
-        // Reject only past times; allow "now" and future
-        if ($when->lt($nowUtc)) {
-            return response()->json(['error' => 'Appointment time is not upcoming.'], 422);
-        }
+      
+        // $slotEnd = $when->copy()->addMinutes($slotMinutes); 
+        // if ($nowUtc->gt($slotEnd)) {
+        //     return response()->json(['error' => 'Call window has ended for this appointment.'], 422);
+        // }
 
        
         $this->upsertUsers(new Request([
@@ -235,5 +252,29 @@ class StreamController extends Controller
         ];
 
         return JWT::encode($payload, $this->apiSecret, 'HS256');
+    }
+
+
+
+    private function resolveSlotDurationForAppointment(int $providerId, Carbon $appointmentStartUtc): ?int
+    {
+        $day  = strtolower($appointmentStartUtc->format('l'));
+        $time = $appointmentStartUtc->format('H:i:s');
+
+        $row = DB::table('service_provider_availabilities')
+            ->where('provider_id', $providerId)
+            ->where('availability_type', 'appointment')
+            ->where('day', $day)
+            ->where('start_time', '<=', $time)
+            ->where('end_time', '>=', $time)
+            ->orderByDesc('start_time') 
+            ->first();
+
+        if (! $row) {
+            return null;
+        }
+
+        $slot = (int) ($row->slot_duration ?? 0);
+        return $slot > 0 ? $slot : null;
     }
 }
