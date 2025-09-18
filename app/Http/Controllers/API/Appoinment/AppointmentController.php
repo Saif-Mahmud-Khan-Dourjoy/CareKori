@@ -1073,6 +1073,18 @@ class AppointmentController extends Controller
         }
 
 
+        $user = auth()->user();
+        $role = strtolower($user->role->name ?? '');
+
+       
+        if (!in_array($role, ['customer', 'super admin', 'moderator'])) {
+           
+            if ($user->id !== $appointment->provider_id) {
+                return response()->json(['error' => 'You cannot update this appointment.'], 403);
+            }
+        }
+
+
         if ($appointment->is_cancel_by_user) {
             return response()->json([
                 'message' => 'This appointment was cancelled by the user. No action can be performed.'
@@ -1626,11 +1638,14 @@ class AppointmentController extends Controller
         }
 
         $validated = $request->validate([
-            'conduct_success_status' => 'required|boolean', 
+            'conduct_success_status' => 'required|boolean',
+            'report_text'=> 'nullable|string|max:1000',
         ]);
 
         $appointment->update([
             'conduct_success_status' => (bool) $validated['conduct_success_status'],
+            'report_text' => $validated['report_text'] ?: null,
+
         ]);
 
         return response()->json([
