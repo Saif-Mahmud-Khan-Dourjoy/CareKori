@@ -467,3 +467,26 @@ Route::middleware('auth:sanctum')->get('/notifications/{id}', function (Request 
 
     return response()->json(['message' => 'Notification marked as read', 'notification' => $notification]);
 });
+
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+
+Route::get('/test-pdf', function () {
+
+
+    $pdf = Pdf::loadView('prescription');
+
+    $fileName = 'prescription.pdf';
+    $filePath = public_path('pdf/' . $fileName);
+
+    // Ensure the directory exists
+    File::ensureDirectoryExists(public_path('pdf'));
+
+    // Save the file to the public/pdf directory
+    $pdf->save($filePath);
+
+    return response()->json([
+        'message' => 'PDF saved successfully',
+        'url' => asset('pdf/' . $fileName)
+    ]);
+});
