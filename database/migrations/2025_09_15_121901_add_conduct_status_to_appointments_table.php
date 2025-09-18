@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('appointments', function (Blueprint $table) {
             $table->boolean('conduct_success_status')->nullable()->after('status');
+            $table->text('report_text')->nullable()->after('conduct_success_status');
         });
     }
 
@@ -23,6 +24,7 @@ return new class extends Migration
     {
         Schema::table('appointments', function (Blueprint $table) {
             $table->dropColumn('conduct_success_status');
+            $table->dropColumn('report_text');
         });
     }
 };

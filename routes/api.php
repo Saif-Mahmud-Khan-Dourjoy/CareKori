@@ -143,6 +143,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/moderator/profile/image', [ModeratorProfile::class, 'addProfileImage']);
         Route::post('/update/moderator/profile/image', [ModeratorProfile::class, 'updateProfileImage']);
         Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
+
+        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
     });
 
     //common provider
@@ -294,6 +296,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
         Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
+
+        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
     });
 
 
