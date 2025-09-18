@@ -196,6 +196,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/complaints/provider', [ComplaintController::class, 'storeByProvider']);
 
         Route::put('/provider/appointments/{appointment}/conduct-status', [AppointmentController::class, 'updateConductStatus']);
+        Route::post('/generate/prescription/{appointmentId}', [AppointmentController::class, 'generatePrescription']);
     });
 
 

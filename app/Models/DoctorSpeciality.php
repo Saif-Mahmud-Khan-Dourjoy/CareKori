@@ -10,7 +10,7 @@ class DoctorSpeciality extends Model
     use HasFactory;
 
     protected $fillable = [
-        'specialized_at',
+        'specialized_at','icon'
     ];
 
     public function doctorProfiles()

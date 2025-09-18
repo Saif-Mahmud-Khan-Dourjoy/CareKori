@@ -5,15 +5,21 @@ namespace App\Http\Controllers\API\Appoinment;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentSlot;
+use App\Models\Document;
+use App\Models\PrivateDocument;
 use App\Models\Promocode;
 use App\Models\ServiceProviderAvailability;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use App\Notifications\CommonNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
@@ -1637,6 +1643,150 @@ class AppointmentController extends Controller
             'message' => 'Conduct status updated.',
             'appointment' => $appointment->fresh(),
         ]);
+    }
+
+
+    public function generatePrescription(Request $request, $appointmentId)
+    {
+        $appointment = Appointment::with(['customer.customerProfile', 'provider'])->find($appointmentId);
+
+        if (!$appointment) {
+            return response()->json(['error' => 'Appointment not found'], 404);
+        }
+
+       
+        if ($appointment->provider_id !== auth()->user()->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
+        $provider = $appointment->provider;
+        $role = strtolower($provider->role->name ?? '');
+
+        if ($role === 'doctor') {
+            $provider->load([
+                'doctorProfile',
+                'doctorProfile.doctorSpeciality'
+            ]);
+            $profile = $provider->doctorProfile;
+            $speciality = $profile?->doctorSpeciality;
+        } elseif ($role === 'lawyer') {
+            $provider->load([
+                'lawyerProfile',
+                'lawyerProfile.lawyerSpeciality'
+            ]);
+            $profile = $provider->lawyerProfile;
+            $speciality = $profile?->lawyerSpeciality;
+        } else {
+            $provider->load([
+                'commonProfile',
+                'commonProfile.commonSpeciality'
+            ]);
+            $profile = $provider->commonProfile;
+            $speciality = $profile?->commonSpeciality;
+        }
+
+        // Decode JSON inputs
+        $medicine = json_decode($request->input('medicine'), true);
+        
+        $tests = json_decode($request->input('tests'), true);
+        $advice = json_decode($request->input('advice'), true);
+
+        // Prepare data for validation
+        $data = [
+            'medicine' => $medicine,
+            'tests' => $tests,
+            'advice' => $advice,
+            'insurance' => $request->input('insurance'),
+            'diagnosis' => $request->input('diagnosis'),
+        ];
+
+        // Validation rules
+        $rules = [
+            'medicine' => 'required|array|min:1',
+            'medicine.*.name' => 'required|string',
+            'medicine.*.dosage' => 'required|string',
+            'medicine.*.timing' => 'nullable|string',
+            'tests' => 'nullable|array',
+            'tests.*.name' => 'required|string',
+            'advice' => 'nullable|array',
+            'advice.*.advice' => 'required|string',
+            'insurance' => 'nullable|string',
+            'diagnosis' => 'nullable|string',
+        ];
+
+        // Custom messages
+        $messages = [
+            'medicine.required' => 'Medicine is required and must be a non-empty array.',
+            'medicine.*.name.required' => 'Each medicine must have a name.',
+            'medicine.*.dosage.required' => 'Each medicine must have a dosage.',
+           
+            'tests.*.name.required' => 'Each test must have a name.',
+            'advice.*.advice.required' => 'Each advice must have an advice string.',
+        ];
+
+        // Validate
+        $validator = Validator::make($data, $rules, $messages);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        } 
+
+        $mainData= [
+            'appointment' => $appointment,
+            'customer' => $appointment->customer,
+            'customer_profile' => $appointment->customer->customerProfile,
+            'provider' => $provider,
+            'provider_profile' => $profile,
+            'speciality' => $speciality,
+            'medicine' => $medicine,
+            'tests' => $tests,
+            'advice' => $advice,
+            'insurance' => $data['insurance'] ?? null,
+            'diagnosis' => $data['diagnosis'] ?? null,
+            'date' => Carbon::now()->format('Y-m-d'),
+        ];
+
+
+        $pdf = Pdf::loadView('prescription', $mainData);
+
+        $fileName = time() . '_' . auth()->user()->id . '_' . uniqid() . '.pdf';
+        $filePath = public_path('images/documents/' . $fileName);
+
+        
+        File::ensureDirectoryExists(public_path('images/documents'));
+
+        
+        $pdf->save($filePath);
+
+
+        $document = Document::create([
+            'user_id' => auth()->user()->id,
+            'document_link' => asset('images/documents/' . $fileName),
+            'type' => "private",
+        ]);
+
+       
+            PrivateDocument::create([
+                'document_id' => $document->id,
+                'created_by' => auth()->user()->id,
+                'created_for' => $appointment->customer->id,
+                'appointment_id' => $appointment->id,
+            ]);
+        
+
+
+
+        return response()->json([
+            'message' => 'Prescription saved successfully',
+            'url' => asset('images/documents/' . $fileName)
+        ]);
+
+
+
+
+       
+
+       
     }
 
 }

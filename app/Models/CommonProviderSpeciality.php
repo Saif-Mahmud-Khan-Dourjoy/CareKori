@@ -13,6 +13,7 @@ class CommonProviderSpeciality extends Model
         'category_id',
         'specialized_at',
         'description',
+        'icon'
     ];
 
     public function category()

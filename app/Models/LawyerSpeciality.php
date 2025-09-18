@@ -9,7 +9,7 @@ class LawyerSpeciality extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'specialized_at',
+        'specialized_at','icon'
     ];
     public function lawyerProfiles()
     {

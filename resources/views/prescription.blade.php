@@ -553,8 +553,8 @@
 
         .top-table .doctor-name {
             color: #104e8b;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 16px;
+            font-weight: 600;
         }
 
         footer {
@@ -606,7 +606,7 @@
 
         .col-img {
             width: 25%;
-            
+
             /* QR column */
         }
 
@@ -709,9 +709,9 @@
                         <img src="{{ public_path('images/network.png') }}" height="60" alt="Logo">
                     </td>
                     <td style="text-align:right; padding-right: 40px;">
-                        <div class="doctor-name">Dr. John Doe</div>
-                        Urology<br>
-                        Specialist Physician
+                        <div class="doctor-name">{{ $provider->name }}</div>
+                        {{ $speciality->specialized_at }}<br>
+                        <span style="font-weight: 600">Tagline:</span> N/A
                     </td>
                 </tr>
             </table>
@@ -719,13 +719,13 @@
             <table class="info-table">
                 <tr>
                     <td>
-                        <strong>Patient Name:</strong> John Smith<br>
-                        <strong>Address:</strong> 123 Main Street, City, Country<br>
-                        <strong>Date:</strong> 10th September 2025
+                        <span style="font-weight: 500">Patient Name:</span> {{ $customer->name }}<br>
+                        <span style="font-weight: 500">Address:</span> {{ $customer_profile->address }}<br>
+                        <span style="font-weight: 500">Date:</span> {{ $date }}
                     </td>
                     <td style="text-align:right; padding-right: 40px;">
-                        <strong>Insurance:</strong> Health Insurance<br>
-                        <strong>Diagnosis:</strong> Hypertension
+                        <span style="font-weight: 500">Insurance:</span> {{ $insurance ?? 'N/A' }}<br>
+                        <span style="font-weight: 500">Diagnosis:</span> {{ $diagnosis ?? 'N/A' }}
                     </td>
                 </tr>
             </table>
@@ -740,9 +740,13 @@
 
         </div>
         @php
-        use SimpleSoftwareIO\QrCode\Facades\QrCode;
+            use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
-$qrData = base64_encode(QrCode::format('svg')->size(60)->generate('John Doe - Urology'));
+            $qrData = base64_encode(
+                QrCode::format('svg')
+                    ->size(60)
+                    ->generate($provider->name . ' - ' . $speciality->specialized_at),
+            );
 
         @endphp
         <div class="footer-wrapper">
@@ -777,14 +781,33 @@ $qrData = base64_encode(QrCode::format('svg')->size(60)->generate('John Doe - Ur
 
 
         <div class="med-list">
-            <div class="med-item">• Paracetamol — 1-0-1 (After Meal)</div>
-            <div class="med-item">• Amoxicillin — 1-1-1 (Before Meal)</div>
-            <div class="med-item">• Cetirizine — 0-0-1</div>
+          
+            @foreach ($medicine as $medication)
+                <div class="med-item">• {{ $medication['name'] }} — {{ $medication['dosage'] }} ({{ $medication['timing'] }})</div>
+            @endforeach
+
+            @if (!empty($tests))
+            <div style="margin-top: 15px; font-size: 16px; font-weight: 500" class="rx-title"> Tests: </div>
+                <div class="med-item" style="margin-top: 5px">
+                    @foreach ($tests as $test)
+                        • {{ $test['name'] }}<br>
+                    @endforeach
+                </div>
+            @endif
+
+            @if (!empty($advice))
+            <div style="margin-top: 15px;font-size: 16px; font-weight: 500" class="rx-title"> Advice: </div>
+                <div class="med-item" style="margin-top: 5px">
+                    @foreach ($advice as $advice)
+                        • {{ $advice['advice'] }}<br>
+                    @endforeach
+                </div>
+            @endif
+           
+
         </div>
 
-        @for ($i = 1; $i <= 120; $i++)
-            <p>Line {{ $i }}: Lorem ipsum dolor sit amet…</p>
-        @endfor
+        
 
 
     </div>
