@@ -1085,7 +1085,7 @@ class AppointmentController extends Controller
        
         if (!in_array($role, ['customer', 'super admin', 'moderator'])) {
            
-            if ($user->id !== $appointment->provider_id) {
+            if ((int)$user->id !== (int)$appointment->provider_id) {
                 return response()->json(['error' => 'You cannot update this appointment.'], 403);
             }
         }
@@ -1670,7 +1670,7 @@ class AppointmentController extends Controller
         }
 
        
-        if ($appointment->provider_id !== auth()->user()->id) {
+        if ((int)$appointment->provider_id !== (int)auth()->user()->id) {
             return response()->json(['error' => 'Unauthorized access'], 403);
         }
 
