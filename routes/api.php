@@ -142,9 +142,9 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         Route::post('/moderator/profile/image', [ModeratorProfile::class, 'addProfileImage']);
         Route::post('/update/moderator/profile/image', [ModeratorProfile::class, 'updateProfileImage']);
-        Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
+        
 
-        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
+       
     });
 
     //common provider
@@ -177,7 +177,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/appointments/provider/history/{uniqueUserId}', [AppointmentController::class, 'historyAppointmentsForProvider']);
         // Route::delete('/appointments/{appointmentId}', [AppointmentController::class, 'deleteAppointment']);
         Route::put('/appointments/{appointmentId}', [AppointmentController::class, 'updateAppointment']);
-        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
+        
 
 
         Route::post('/provider/withdraw-request', [EarningController::class, 'requestWithdrawal']);
@@ -295,9 +295,9 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
 
         Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
-        Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
+        
 
-        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
+        
     });
 
 
@@ -338,6 +338,16 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::put('/promocodes/status/{id}', [PromocodeController::class, 'statusUpdate']);
         Route::delete('/promocodes/{id}', [PromocodeController::class, 'destroy']);
         Route::post('/promocodes/assign', [PromocodeController::class, 'assign']);
+    });
+
+    
+    Route::middleware(['commonrole:super admin,moderator'])->group(function () {
+        Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
+    });
+
+    
+    Route::middleware(['commonrole:super admin,moderator,provider'])->group(function () {
+        Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
     });
 
 

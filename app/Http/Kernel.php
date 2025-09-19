@@ -80,7 +80,9 @@ class Kernel extends HttpKernel
         'provider' => \App\Http\Middleware\VerifyProvider::class,  
 
         'check.token.expiration' => \App\Http\Middleware\CheckTokenExpiration::class,
-        'author' => \App\Http\Middleware\CheckAuthor::class,  
+        'author' => \App\Http\Middleware\CheckAuthor::class,
+
+        'commonrole' => \App\Http\Middleware\CommonRole::class,
 
     ];
 }
