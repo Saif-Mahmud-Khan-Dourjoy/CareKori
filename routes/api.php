@@ -131,7 +131,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/documents/{providerId}/download-all', [DocumentController::class, 'downloadAllDocuments']);
 
         Route::post('/check-promocode', [PromocodeController::class, 'check']);
-        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
+        
     });
 
     //moderator
@@ -191,8 +191,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::get('/provider/appointments/overview', [AppointmentController::class, 'providerOverview']);
         Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancelAppointmentByProvider']);
 
-        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
-           Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
+        
+        Route::post('/phone/change/otp/send', [OtpController::class, 'sendOtpForPhoneChange']); // Send OTP for phone number change
         Route::post('/otp/verify/update/phone', [OtpController::class, 'verifyOtpAndChangePhone']); // Verify OTP and update phone number
 
         Route::post('/complaints/provider', [ComplaintController::class, 'storeByProvider']);
@@ -349,6 +349,12 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     Route::middleware(['commonrole:super admin,moderator,provider'])->group(function () {
         Route::put('/appointments/status/{appointmentId}', [AppointmentController::class, 'updateAppointmentStatus']);
     });
+
+    Route::middleware(['commonrole:customer,provider'])->group(function () {
+        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
+    });
+
+    
 
 
     // Documents
