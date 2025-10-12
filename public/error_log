@@ -1,0 +1,292 @@
+[26-Jun-2025 09:44:00 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[26-Jun-2025 09:44:00 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[26-Jun-2025 09:45:04 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[26-Jun-2025 09:45:04 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[01-Jul-2025 20:16:13 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[01-Jul-2025 20:16:13 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[10-Jul-2025 22:47:09 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Http\Controllers\API\Appoinment\AppointmentController::updateAppointment() in /home/carekoridevtechs/public_html/app/Http/Controllers/API/Appoinment/AppointmentController.php on line 839
+[10-Jul-2025 22:51:12 Asia/Dhaka] PHP Fatal error:  Cannot redeclare App\Http\Controllers\API\Appoinment\AppointmentController::updateAppointment() in /home/carekoridevtechs/public_html/app/Http/Controllers/API/Appoinment/AppointmentController.php on line 839
+[15-Jul-2025 19:47:07 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:47:10 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:47:56 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:48:00 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:48:05 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:48:08 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:48:25 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 19:49:29 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes) in /home/carekoridevtechs/public_html/vendor/nesbot/carbon/src/Carbon/Traits/Converter.php on line 74
+[15-Jul-2025 20:31:32 Asia/Dhaka] PHP Fatal error:  Trait "App\Http\Controllers\API\Document\Illuminate\Support\Facades\DB" not found in /home/carekoridevtechs/public_html/app/Http/Controllers/API/Document/DocumentController.php on line 15
+[25-Jul-2025 19:13:18 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[25-Jul-2025 19:13:18 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:20 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:20 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:21 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:21 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:21 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:21 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:21 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:21 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:28 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:28 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:47 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[31-Jul-2025 16:34:47 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:15:46 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:15:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:15:53 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:15:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:16:05 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:16:05 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:16:38 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[03-Aug-2025 17:16:38 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[05-Aug-2025 00:10:03 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 98570240 bytes) in /home/carekoridevtechs/public_html/app/Http/Controllers/API/EarningController.php on line 255
+[18-Sep-2025 16:32:35 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:35 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:40 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:40 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:41 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:41 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:41 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:41 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:41 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:41 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:49 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:49 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:49 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:49 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:49 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:49 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:50 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:50 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:55 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:32:55 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:01 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:05 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:05 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:07 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:08 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:08 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:08 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:08 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:08 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:08 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:09 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:09 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:09 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:09 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:09 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:09 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:12 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:12 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:22 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:22 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:22 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:22 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:32 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:32 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:32 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:32 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:32 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:32 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:34 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:34 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:34 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:34 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:34 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:34 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:45 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:45 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:45 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:45 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:45 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:45 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:46 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:46 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:46 UTC] PHP Warning:  require(/home/carekoridevtechs/public_html/public/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/carekoridevtechs/public_html/public/index.php on line 34
+[18-Sep-2025 16:33:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/carekoridevtechs/public_html/public/../vendor/autoload.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/carekoridevtechs/public_html/public/index.php:34
+Stack trace:
+#0 {main}
+  thrown in /home/carekoridevtechs/public_html/public/index.php on line 34
