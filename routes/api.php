@@ -4,6 +4,7 @@ use App\Http\Controllers\API\AddBannerController;
 use App\Http\Controllers\API\AdminController;
 use App\Http\Controllers\API\Appoinment\AppointmentController;
 use App\Http\Controllers\API\Appoinment\ServiceProviderController;
+use App\Http\Controllers\API\CommonController;
 use App\Http\Controllers\API\CommonProvider;
 use App\Http\Controllers\API\CommonProviderSpeciality;
 use App\Http\Controllers\API\CustomerProfile;
@@ -268,8 +269,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         Route::post('/create-service-provider', [AdminController::class, 'createServiceProviderRole']);
 
-        //approve status
-        Route::put('/approve-provider/{uniqueUserId}', [AdminController::class, 'approveProvider']);
+        
 
 
 
@@ -338,11 +338,22 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::put('/promocodes/status/{id}', [PromocodeController::class, 'statusUpdate']);
         Route::delete('/promocodes/{id}', [PromocodeController::class, 'destroy']);
         Route::post('/promocodes/assign', [PromocodeController::class, 'assign']);
+        Route::get('/promocodes', [PromocodeController::class, 'getAllPromocodes']);
     });
 
     
     Route::middleware(['commonrole:super admin,moderator'])->group(function () {
         Route::put('/withdraw-status-update/{id}', [EarningController::class, 'updateStatus']);
+        Route::get('/user-count', [CommonController::class, 'UserCount']);
+        Route::get('/appointment-status-count', [AppointmentController::class, 'AppointmentStatusCount']);
+        Route::get('/service-and-sub-service-count', [CommonController::class, 'serviceAndSubServiceCount']);
+        Route::get('/revenue-profit-series', [CommonController::class, 'revenueProfitSeries']);
+        Route::get('/getters-providers-series', [CommonController::class, 'gettersProvidersSeries']);
+        //approve status
+        Route::put('/approve-provider/{uniqueUserId}', [AdminController::class, 'approveProvider']);
+        Route::get('/approve-requests', [CommonController::class, 'getPendingApprovalProviders']);
+        Route::get('/provider-revenue-board', [CommonController::class, 'providerRevenueBoard']);
+        Route::put('/change-complaint-status/{complaintId}', [ComplaintController::class, 'changeComplaintStatus']);
     });
 
     

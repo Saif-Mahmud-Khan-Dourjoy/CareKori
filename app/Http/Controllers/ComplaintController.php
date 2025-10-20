@@ -303,4 +303,28 @@ class ComplaintController extends Controller
             'complaint' => $complaint,
         ]);
     }
+
+    public function changeComplaintStatus(Request $request, $complaintId)
+    {
+        // Validate incoming data
+        $validated = $request->validate([
+            'status' => 'required|in:pending,resolved',
+        ]);
+
+        // Find the complaint by ID
+        $complaint = Complaint::find($complaintId);
+        if (!$complaint) {
+            return response()->json(['message' => 'Complaint not found'], 404);
+        }
+
+        // Update the status
+        $complaint->status = $validated['status'];
+        $complaint->save();
+
+        // Return success response
+        return response()->json([
+            'message' => 'Complaint status updated successfully.',
+            'complaint' => $complaint
+        ]);
+    }
 }

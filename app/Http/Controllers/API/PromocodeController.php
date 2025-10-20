@@ -8,6 +8,7 @@ use App\Models\PromocodeAssignment;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 class PromocodeController extends Controller
 {
@@ -116,63 +117,63 @@ class PromocodeController extends Controller
     }
 
 
-    public function assign(Request $request)
-    {
-        $validated = $request->validate([
-            'promocode_id'   => 'required|exists:promocodes,id',
-            'user_id'        => 'nullable|exists:users,id',
-            'role_id'        => 'nullable|exists:roles,id',
-            'speciality_id'  => 'nullable|integer',
+    // public function assign(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'promocode_id'   => 'required|exists:promocodes,id',
+    //         'user_id'        => 'nullable|exists:users,id',
+    //         'role_id'        => 'nullable|exists:roles,id',
+    //         'speciality_id'  => 'nullable|integer',
 
-        ]);
-
-
-        $userId = $validated['user_id'] ?? null;
-        $roleId = $validated['role_id'] ?? null;
-        $specialityId = $validated['speciality_id'] ?? null;
+    //     ]);
 
 
-        if ($userId) {
-            if ($roleId || $specialityId) {
-                return response()->json([
-                    'message' => 'When assigning to user, role and speciality must be null.'
-                ], 422);
-            }
+    //     $userId = $validated['user_id'] ?? null;
+    //     $roleId = $validated['role_id'] ?? null;
+    //     $specialityId = $validated['speciality_id'] ?? null;
 
-            $assignment = PromocodeAssignment::create([
-                'promocode_id' => $validated['promocode_id'],
-                'user_id' => $userId
-            ]);
-        } elseif ($roleId && !$specialityId) {
-            $assignment = PromocodeAssignment::create([
-                'promocode_id' => $validated['promocode_id'],
-                'role_id' => $roleId
-            ]);
-        } elseif ($roleId && $specialityId) {
-            $role = Role::find($roleId);
-            if (!$role) {
-                return response()->json(['message' => 'Invalid role ID.'], 404);
-            }
 
-            $specialityType = $role->name;
+    //     if ($userId) {
+    //         if ($roleId || $specialityId) {
+    //             return response()->json([
+    //                 'message' => 'When assigning to user, role and speciality must be null.'
+    //             ], 422);
+    //         }
 
-            $assignment = PromocodeAssignment::create([
-                'promocode_id'    => $validated['promocode_id'],
-                'role_id'         => $roleId,
-                'speciality_id'   => $specialityId,
-                'speciality_type' => $specialityType,
-            ]);
-        } else {
-            return response()->json([
-                'message' => 'Invalid assignment input. You must set either user_id, or role_id, or both role_id and speciality_id.'
-            ], 422);
-        }
+    //         $assignment = PromocodeAssignment::create([
+    //             'promocode_id' => $validated['promocode_id'],
+    //             'user_id' => $userId
+    //         ]);
+    //     } elseif ($roleId && !$specialityId) {
+    //         $assignment = PromocodeAssignment::create([
+    //             'promocode_id' => $validated['promocode_id'],
+    //             'role_id' => $roleId
+    //         ]);
+    //     } elseif ($roleId && $specialityId) {
+    //         $role = Role::find($roleId);
+    //         if (!$role) {
+    //             return response()->json(['message' => 'Invalid role ID.'], 404);
+    //         }
 
-        return response()->json([
-            'message' => 'Promocode assigned successfully.',
-            'assignment' => $assignment
-        ]);
-    }
+    //         $specialityType = $role->name;
+
+    //         $assignment = PromocodeAssignment::create([
+    //             'promocode_id'    => $validated['promocode_id'],
+    //             'role_id'         => $roleId,
+    //             'speciality_id'   => $specialityId,
+    //             'speciality_type' => $specialityType,
+    //         ]);
+    //     } else {
+    //         return response()->json([
+    //             'message' => 'Invalid assignment input. You must set either user_id, or role_id, or both role_id and speciality_id.'
+    //         ], 422);
+    //     }
+
+    //     return response()->json([
+    //         'message' => 'Promocode assigned successfully.',
+    //         'assignment' => $assignment
+    //     ]);
+    // }
 
     // public function assign(Request $request)
     // {
@@ -251,6 +252,155 @@ class PromocodeController extends Controller
     //     ], 422);
     // }
 
+    // public function assign(Request $request)
+    // {
+    //     // super simple validation (arrays or scalars are fine)
+    //     $request->validate([
+    //         'promocode_id'   => 'required|exists:promocodes,id',
+    //         'user_id'        => 'nullable',
+    //         'user_id.*'      => 'integer|exists:users,id',
+    //         'role_id'        => 'nullable',
+    //         'role_id.*'      => 'integer|exists:roles,id',
+    //         'speciality_id'  => 'nullable',
+    //         'speciality_id.*' => 'integer',
+    //     ]);
+
+    //     // normalize to arrays
+    //     $promocodeId   = (int) $request->promocode_id;
+    //     $userIds       = collect(Arr::wrap($request->user_id))->filter()->unique()->values();
+    //     $roleIds       = collect(Arr::wrap($request->role_id))->filter()->unique()->values();
+    //     $specialityIds = collect(Arr::wrap($request->speciality_id))->filter()->unique()->values();
+
+    //     // --- mode 1: assign to specific users ---
+    //     if ($userIds->isNotEmpty()) {
+    //         if ($roleIds->isNotEmpty() || $specialityIds->isNotEmpty()) {
+    //             return response()->json(['message' => 'When assigning to users, omit role_id and speciality_id'], 422);
+    //         }
+
+    //         foreach ($userIds as $uid) {
+    //             PromocodeAssignment::create([
+    //                 'promocode_id' => $promocodeId,
+    //                 'user_id'      => $uid,
+    //             ]);
+    //         }
+
+    //         return response()->json(['message' => 'Assigned to users successfully.']);
+    //     }
+
+    //     // --- mode 2: assign to roles only ---
+    //     if ($roleIds->isNotEmpty() && $specialityIds->isEmpty()) {
+    //         foreach ($roleIds as $rid) {
+    //             PromocodeAssignment::create([
+    //                 'promocode_id' => $promocodeId,
+    //                 'role_id'      => $rid,
+    //             ]);
+    //         }
+
+    //         return response()->json(['message' => 'Assigned to roles successfully.']);
+    //     }
+
+    //     // --- mode 3: assign to role + speciality (every role x every speciality) ---
+    //     if ($roleIds->isNotEmpty() && $specialityIds->isNotEmpty()) {
+    //         // fetch role names once to fill speciality_type (e.g., 'doctor', 'lawyer', etc.)
+    //         $roles = Role::whereIn('id', $roleIds)->pluck('name', 'id');
+
+    //         foreach ($roleIds as $rid) {
+    //             $specialityType = $roles[$rid] ?? null;
+
+    //             foreach ($specialityIds as $sid) {
+    //                 PromocodeAssignment::create([
+    //                     'promocode_id'    => $promocodeId,
+    //                     'role_id'         => $rid,
+    //                     'speciality_id'   => $sid,
+    //                     'speciality_type' => $specialityType,
+    //                 ]);
+    //             }
+    //         }
+
+    //         return response()->json(['message' => 'Assigned to roles + specialities successfully.']);
+    //     }
+
+    //     // nothing valid was provided
+    //     return response()->json([
+    //         'message' => 'Provide user_id(s) OR role_id(s). If speciality_id is provided, it must be with role_id.'
+    //     ], 422);
+    // }
+
+    public function assign(Request $request)
+    {
+        // Is the request trying to assign by speciality?
+        $hasSpeciality = filled($request->input('speciality_id'));
+
+        if ($hasSpeciality) {
+            // ---- MODE A: role + speciality (role_id is a SINGLE required int; speciality_id can be scalar or array)
+            $data = $request->validate([
+                'promocode_id'    => 'required|exists:promocodes,id',
+                'role_id'         => 'required|integer|exists:roles,id', // single role only
+                'speciality_id'   => 'required',                          // accept scalar or array
+                'speciality_id.*' => 'integer',                           // elements must be ints if array
+                'user_id'         => 'prohibited',                        // users not allowed in this mode
+            ]);
+
+            $promocodeId   = (int) $data['promocode_id'];
+            $roleId        = (int) $data['role_id'];
+            $specialityIds = collect(Arr::wrap($data['speciality_id']))->filter()->map('intval')->unique()->values();
+
+            // fetch role name once for speciality_type
+            $roleName = Role::whereKey($roleId)->value('name');
+
+            foreach ($specialityIds as $sid) {
+                PromocodeAssignment::create([
+                    'promocode_id'    => $promocodeId,
+                    'role_id'         => $roleId,
+                    'speciality_id'   => $sid,
+                    'speciality_type' => $roleName, // e.g. 'doctor', 'lawyer', etc.
+                ]);
+            }
+
+            return response()->json(['message' => 'Assigned to role + specialities successfully.']);
+        }
+
+        // ---- MODE B: users OR roles (arrays allowed), but NOT both together
+        $data = $request->validate([
+            'promocode_id'    => 'required|exists:promocodes,id',
+            'user_id'         => 'nullable|array',
+            'user_id.*'       => 'integer|exists:users,id',
+            'role_id'         => 'nullable|array',
+            'role_id.*'       => 'integer|exists:roles,id',
+            'speciality_id'   => 'prohibited',  // no speciality here
+        ]);
+
+        $promocodeId = (int) $data['promocode_id'];
+        $userIds     = collect($data['user_id'] ?? [])->unique()->values();
+        $roleIds     = collect($data['role_id'] ?? [])->unique()->values();
+
+        if ($userIds->isNotEmpty() && $roleIds->isNotEmpty()) {
+            return response()->json(['message' => 'Provide either user_id[] OR role_id[], not both.'], 422);
+        }
+
+        if ($userIds->isNotEmpty()) {
+            foreach ($userIds as $uid) {
+                PromocodeAssignment::create([
+                    'promocode_id' => $promocodeId,
+                    'user_id'      => (int) $uid,
+                ]);
+            }
+            return response()->json(['message' => 'Assigned to users successfully.']);
+        }
+
+        if ($roleIds->isNotEmpty()) {
+            foreach ($roleIds as $rid) {
+                PromocodeAssignment::create([
+                    'promocode_id' => $promocodeId,
+                    'role_id'      => (int) $rid,
+                ]);
+            }
+            return response()->json(['message' => 'Assigned to roles successfully.']);
+        }
+
+        return response()->json(['message' => 'Provide user_id[] or role_id[], or use role_id + speciality_id.'], 422);
+    }
+
 
 
     public function check(Request $request)
@@ -324,4 +474,16 @@ class PromocodeController extends Controller
             'message' => 'Promocode applied successfully.'
         ]);
     }
+
+    public function getAllPromocodes()
+    {
+        $promocodes = Promocode::with('assignments')->get();
+
+        return response()->json([
+            'promocodes' => $promocodes
+        ]);
+      
+    }
+
+
 }

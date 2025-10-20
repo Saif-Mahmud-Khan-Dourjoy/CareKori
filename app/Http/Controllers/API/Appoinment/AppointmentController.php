@@ -1813,4 +1813,23 @@ $request->validate([
        
     }
 
+    public function AppointmentStatusCount(){
+        
+        $cancelled = Appointment::where('status', 'cancelled')->count();
+        $completed = Appointment::where('status', 'completed')->count();
+        $confirmed = Appointment::where('status', 'confirmed')->count();
+        $pending = Appointment::where('status', 'pending')->count();
+        $upcoming = Appointment::where('status', 'confirmed')
+            ->where('appointment_time', '>', Carbon::now('UTC'))
+            ->count();
+        return response()->json( [
+            'cancelled' => $cancelled,
+            'completed' => $completed,
+            'confirmed' => $confirmed,
+            'pending' => $pending,
+            'upcoming' => $upcoming,
+        ]);
+
+    }
+
 }

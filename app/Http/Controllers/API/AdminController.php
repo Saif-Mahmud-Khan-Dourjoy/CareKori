@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ModeratorProfile;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\CommonNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -504,6 +505,9 @@ class AdminController extends Controller
                 }
                 break;
         }
+
+        $user->notify(new CommonNotification($user,  "Approve Status", "Your request has been approved."));
+
 
         // Return response with success message
         return response()->json(['message' => 'Approved successfully.']);
