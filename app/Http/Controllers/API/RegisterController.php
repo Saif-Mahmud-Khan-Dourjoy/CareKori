@@ -171,7 +171,13 @@ class RegisterController extends Controller
             'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'division' => 'sometimes|nullable|string|max:255',
         ]);
+
+        if (isset($validated['division'])) {
+            $validated['thana'] = $validated['division'];
+            unset($validated['division']);
+        }
 
 
         // Handle avatar upload if provided
@@ -258,7 +264,13 @@ class RegisterController extends Controller
             'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
+            'division' => 'sometimes|nullable|string|max:255',
         ]);
+
+        if (isset($validated['division'])) {
+            $validated['thana'] = $validated['division'];
+            unset($validated['division']);
+        }
 
         // Handle avatar upload if provided
         if ($request->hasFile('avatar')) {
@@ -346,7 +358,13 @@ class RegisterController extends Controller
             'bank_name' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'account_title' => 'nullable|required_if:payment_type,BANK|string|max:255',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Optional avatar field
+            'division' => 'sometimes|nullable|string|max:255',
         ]);
+
+        if (isset($validated['division'])) {
+            $validated['thana'] = $validated['division'];
+            unset($validated['division']);
+        }
 
 
         // Handle avatar upload if provided

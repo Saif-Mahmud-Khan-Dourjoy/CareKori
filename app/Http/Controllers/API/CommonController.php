@@ -25,11 +25,14 @@ class CommonController extends Controller
             $q->whereNotIn(DB::raw('LOWER(name)'), ['customer', 'super admin', 'super_admin', 'moderator']);
         })->count();
 
+        $users = User::count();
+
         return response()->json([
 
             'getters'    => $getters,
             'providers'  => $providers,
             'moderators' => $moderators,
+            'users'      => $users,
         ]);
     }
 
@@ -63,6 +66,9 @@ class CommonController extends Controller
             + $lawyerSubservicesUsed
             + $commonSubservicesUsed;
 
+        $totalCount = $servicesCount + $totalSubservicesCatalog;
+        $totalUsedCount = $usedServicesCount + $totalSubservicesUsed;
+
 
 
         return response()->json([
@@ -70,6 +76,8 @@ class CommonController extends Controller
             'used_services_count' => $usedServicesCount,
             'sub_services_count' => $totalSubservicesCatalog,
             'used_sub_services_count' => $totalSubservicesUsed,
+            'total_count' => $totalCount,
+            'total_used_count' => $totalUsedCount,
         ]);
     }
 
@@ -262,6 +270,7 @@ class CommonController extends Controller
                     $q->select('*')->where($pending)
                         ->with([
                             'commonSpeciality',
+                            'uniqueIdentification'
                         ]);
                 },
             ])
@@ -275,7 +284,7 @@ class CommonController extends Controller
                     ->orWhereHas('lawyerProfile', $pending)
                     ->orWhereHas('commonProfile', $pending);
             })
-            
+
             ->get();
 
         // Normalize: keep ONLY the matching profile; remove nulls from others
