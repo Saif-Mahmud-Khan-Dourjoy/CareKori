@@ -78,7 +78,47 @@ class ComplaintController extends Controller
     public function getAllComplaints()
     {
         // Fetch all complaints from the database
-        $complaints = Complaint::with(['provider', 'user', 'appointment'])->get();
+        $complaints = Complaint::with([
+            'provider',
+            'provider.role',
+            
+            'provider.doctorProfile.doctorSpeciality',
+      
+            'provider.lawyerProfile.lawyerSpeciality',
+            'provider.commonProfile.commonSpeciality',
+            'user',
+            'user.customerProfile',
+            'appointment'
+        ])->get();
+
+        
+$complaints->transform(function ($complaint) {
+    $provider = $complaint->provider;
+    $role = strtolower($provider->role->name ?? '');
+
+    if ($role === 'doctor') {
+        $profile = $provider->doctorProfile;
+        $speciality = $profile?->doctorSpeciality;
+        $type= $role;
+    } elseif ($role === 'lawyer') {
+        $profile = $provider->lawyerProfile;
+        $speciality = $profile?->lawyerSpeciality;
+        $type=$role;
+    } else {
+        $profile = $provider->commonProfile;
+        $speciality = $profile?->commonSpeciality;
+        $type=$role;
+    }
+
+    $complaint->provider_profile = $profile;
+    $complaint->provider_speciality = $speciality;
+    $complaint->provider_type = $type;
+
+
+    
+
+    return $complaint;
+});
 
         // Return the complaints as a response
         return response()->json([

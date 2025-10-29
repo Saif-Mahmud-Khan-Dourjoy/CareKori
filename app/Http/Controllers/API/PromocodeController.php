@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommonProviderSpeciality;
+use App\Models\DoctorSpeciality;
+use App\Models\LawyerSpeciality;
 use App\Models\Promocode;
 use App\Models\PromocodeAssignment;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class PromocodeController extends Controller
 {
@@ -38,6 +42,104 @@ class PromocodeController extends Controller
         ]);
     }
 
+    public function storeAndAssign(Request $request)
+    {
+        
+        try {
+            DB::beginTransaction();
+            // Validate and create promocode
+            if ($request->has('is_active')) {
+                $request->merge([
+                    'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)
+                ]);
+            }
+
+            $promoData = $request->validate([
+                'code' => 'required|unique:promocodes,code',
+                'discount' => 'required|numeric',
+                'discount_type' => 'required|in:amount,percent',
+                'valid_from' => 'nullable|date_format:Y-m-d H:i:s',
+                'valid_to' => 'nullable|date_format:Y-m-d H:i:s',
+                'is_active' => 'nullable|boolean',
+            ]);
+            $promocode = Promocode::create($promoData);
+
+            // Assignment logic
+            $hasSpeciality = filled($request->input('speciality_id'));
+
+            if ($hasSpeciality) {
+                $assignData = $request->validate([
+                    'role_id'         => 'required|integer|exists:roles,id',
+                    'speciality_id'   => 'required|array',
+                    'speciality_id.*' => 'integer',
+                    'user_id'         => 'prohibited',
+                ]);
+                $roleId        = (int) $assignData['role_id'];
+                $specialityIds = collect(Arr::wrap($assignData['speciality_id']))->filter()->map('intval')->unique()->values();
+                $roleName      = Role::whereKey($roleId)->value('name');
+
+                foreach ($specialityIds as $sid) {
+                    PromocodeAssignment::create([
+                        'promocode_id'    => $promocode->id,
+                        'role_id'         => $roleId,
+                        'speciality_id'   => $sid,
+                        'speciality_type' => $roleName,
+                    ]);
+                }
+                $assignMessage = 'Assigned to role + specialities successfully.';
+            } else {
+                $assignData = $request->validate([
+                    'user_id'         => 'nullable|array',
+                    'user_id.*'       => 'integer|exists:users,id',
+                    'role_id'         => 'nullable|array',
+                    'role_id.*'       => 'integer|exists:roles,id',
+                    'speciality_id'   => 'prohibited',
+                ]);
+                $userIds = collect($assignData['user_id'] ?? [])->unique()->values();
+                $roleIds = collect($assignData['role_id'] ?? [])->unique()->values();
+
+                if ($userIds->isNotEmpty() && $roleIds->isNotEmpty()) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Provide either user_id[] OR role_id[], not both.'], 422);
+                }
+
+                if ($userIds->isNotEmpty()) {
+                    foreach ($userIds as $uid) {
+                        PromocodeAssignment::create([
+                            'promocode_id' => $promocode->id,
+                            'user_id'      => (int) $uid,
+                        ]);
+                    }
+                    $assignMessage = 'Assigned to users successfully.';
+                } elseif ($roleIds->isNotEmpty()) {
+                    foreach ($roleIds as $rid) {
+                        PromocodeAssignment::create([
+                            'promocode_id' => $promocode->id,
+                            'role_id'      => (int) $rid,
+                        ]);
+                    }
+                    $assignMessage = 'Assigned to roles successfully.';
+                } else {
+                    $assignMessage = 'No assignments provided.';
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Promocode created and assigned successfully.',
+                'promocode' => $promocode,
+                'assignment_message' => $assignMessage
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function show($id)
     {
 
@@ -49,9 +151,39 @@ class PromocodeController extends Controller
         ]);
     }
 
+    // public function update(Request $request, $id)
+    // {
+
+    //     if ($request->has('is_active')) {
+    //         $request->merge([
+    //             'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)
+    //         ]);
+    //     }
+
+    //     $data = $request->validate([
+    //         'is_active' => 'nullable|boolean',
+    //         'discount' => 'nullable|numeric',
+    //         'discount_type' => 'nullable|in:amount,percent',
+    //         'valid_from' => 'nullable|date_format:Y-m-d H:i:s',
+    //         'valid_to' => 'nullable|date_format:Y-m-d H:i:s',
+    //     ]);
+
+
+    //     $promocode = Promocode::findOrFail($id);
+
+
+    //     $promocode->update($data);
+
+
+    //     return response()->json([
+    //         'message' => 'Promocode updated successfully',
+    //         'promocode' => $promocode
+    //     ]);
+    // }
+
+
     public function update(Request $request, $id)
     {
-
         if ($request->has('is_active')) {
             $request->merge([
                 'is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)
@@ -59,6 +191,7 @@ class PromocodeController extends Controller
         }
 
         $data = $request->validate([
+            'code' => 'required|string|max:255|unique:promocodes,code,' . $id,
             'is_active' => 'nullable|boolean',
             'discount' => 'nullable|numeric',
             'discount_type' => 'nullable|in:amount,percent',
@@ -66,17 +199,91 @@ class PromocodeController extends Controller
             'valid_to' => 'nullable|date_format:Y-m-d H:i:s',
         ]);
 
+       
+        try {
+            DB::beginTransaction();
+            $promocode = Promocode::findOrFail($id);
+            $promocode->update($data);
 
-        $promocode = Promocode::findOrFail($id);
+            // Assignment logic (similar to storeAndAssign)
+            $hasSpeciality = filled($request->input('speciality_id'));
 
+            if ($hasSpeciality) {
+                $assignData = $request->validate([
+                    'role_id'         => 'required|integer|exists:roles,id',
+                    'speciality_id'   => 'required',
+                    'speciality_id.*' => 'integer',
+                    'user_id'         => 'prohibited',
+                ]);
+                $roleId        = (int) $assignData['role_id'];
+                $specialityIds = collect(Arr::wrap($assignData['speciality_id']))->filter()->map('intval')->unique()->values();
+                $roleName      = Role::whereKey($roleId)->value('name');
 
-        $promocode->update($data);
+                // Remove previous assignments for this promocode
+                PromocodeAssignment::where('promocode_id', $promocode->id)->delete();
 
+                foreach ($specialityIds as $sid) {
+                    PromocodeAssignment::create([
+                        'promocode_id'    => $promocode->id,
+                        'role_id'         => $roleId,
+                        'speciality_id'   => $sid,
+                        'speciality_type' => $roleName,
+                    ]);
+                }
+                $assignMessage = 'Assigned to role + specialities successfully.';
+            } else {
+                $assignData = $request->validate([
+                    'user_id'         => 'nullable|array',
+                    'user_id.*'       => 'integer|exists:users,id',
+                    'role_id'         => 'nullable|array',
+                    'role_id.*'       => 'integer|exists:roles,id',
+                    'speciality_id'   => 'prohibited',
+                ]);
+                $userIds = collect($assignData['user_id'] ?? [])->unique()->values();
+                $roleIds = collect($assignData['role_id'] ?? [])->unique()->values();
 
-        return response()->json([
-            'message' => 'Promocode updated successfully',
-            'promocode' => $promocode
-        ]);
+                // Remove previous assignments for this promocode
+                PromocodeAssignment::where('promocode_id', $promocode->id)->delete();
+
+                if ($userIds->isNotEmpty() && $roleIds->isNotEmpty()) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Provide either user_id[] OR role_id[], not both.'], 422);
+                }
+
+                if ($userIds->isNotEmpty()) {
+                    foreach ($userIds as $uid) {
+                        PromocodeAssignment::create([
+                            'promocode_id' => $promocode->id,
+                            'user_id'      => (int) $uid,
+                        ]);
+                    }
+                    $assignMessage = 'Assigned to users successfully.';
+                } elseif ($roleIds->isNotEmpty()) {
+                    foreach ($roleIds as $rid) {
+                        PromocodeAssignment::create([
+                            'promocode_id' => $promocode->id,
+                            'role_id'      => (int) $rid,
+                        ]);
+                    }
+                    $assignMessage = 'Assigned to roles successfully.';
+                } else {
+                    $assignMessage = 'No assignments provided.';
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Promocode updated and assignments set successfully',
+                'promocode' => $promocode,
+                'assignment_message' => $assignMessage
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function statusUpdate(Request $request, $id)
@@ -477,13 +684,71 @@ class PromocodeController extends Controller
 
     public function getAllPromocodes()
     {
-        $promocodes = Promocode::with('assignments')->get();
+        $promocodes = Promocode::with([
+            'assignments.user.role',
+            'assignments.role',
+        ])->get();
+
+        $excludedRoles = ['customer', 'super admin', 'moderator'];
+
+        $promocodes->each(
+            function ($promocode) use ($excludedRoles) {
+                $promocode->assignments->each(
+                    function ($assignment) use ($excludedRoles) {
+                        // Attach user speciality if user is a provider (not in excluded roles)
+                        if ($assignment->user && $assignment->user->role) {
+                            $roleName = strtolower($assignment->user->role->name);
+                            if (!in_array($roleName, $excludedRoles)) {
+                                switch ($roleName) {
+                                    case 'doctor':
+                                        $assignment->user_speciality = $assignment->user->doctorProfile?->doctorSpeciality;
+                                        break;
+                                    case 'lawyer':
+                                        $assignment->user_speciality = $assignment->user->lawyerProfile?->lawyerSpeciality;
+                                        break;
+                                    default:
+                                        $assignment->user_speciality = $assignment->user->commonProfile?->commonSpeciality;
+                                        break;
+                                }
+                            } else {
+                                $assignment->user_speciality = null;
+                            }
+                        } else {
+                            $assignment->user_speciality = null;
+                        }
+
+                        if ($assignment->speciality_id && $assignment->speciality_type) {
+                            switch (strtolower($assignment->speciality_type)) {
+                                case 'doctor':
+                                    $speciality = DoctorSpeciality::find($assignment->speciality_id);
+                                    break;
+                                case 'lawyer':
+                                    $speciality = LawyerSpeciality::find($assignment->speciality_id);
+                                    break;
+                                default:
+                                    $speciality = CommonProviderSpeciality::find($assignment->speciality_id);
+                                    break;
+                            }
+                            $assignment->speciality = $speciality;
+                        } else {
+                            $assignment->speciality = null;
+                        }
+                    }
+                );
+            }
+        );
 
         return response()->json([
             'promocodes' => $promocodes
         ]);
-      
     }
 
+    public function getAllRoles()
+    {
+        $roles = Role::whereNotIn('name', ['super admin', 'moderator'])->get();
 
+        return response()->json([
+            'roles' => $roles
+        ]);
+    }
 }

@@ -59,9 +59,9 @@ class LawyerProfileController extends Controller
             unset($validated['division']);
         }
 
-        DB::beginTransaction();
+        
         try {
-
+            DB::beginTransaction();
         if ($request->hasFile('avatar')) {
 
             // Delete the previous avatar if it exists

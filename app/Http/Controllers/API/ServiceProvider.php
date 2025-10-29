@@ -417,8 +417,9 @@ if ($authUser && Str::endsWith($authUser->phone, '5')) {
 
 
                 $role_id = Role::where('name', 'customer')->value('id');
-                DB::beginTransaction();
+                
                 try {
+                    DB::beginTransaction();
                     $uniqueUserId = $this->generateUniqueUserId();
 
                     $newUser = User::create([

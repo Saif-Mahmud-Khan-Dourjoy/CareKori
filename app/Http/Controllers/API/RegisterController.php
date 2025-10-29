@@ -22,7 +22,7 @@ class RegisterController extends Controller
 {
     public function register(Request $request)
     {
-
+    
 
         try {
             $request->validate([
@@ -35,14 +35,14 @@ class RegisterController extends Controller
             ]);
 
 
-            $otp = OtpCode::where('phone', $request->phone)
-                ->where('is_verified', true)
-                // ->where('expires_at', '>', now())
-                ->first();
+            // $otp = OtpCode::where('phone', $request->phone)
+            //     ->where('is_verified', true)
+            //     // ->where('expires_at', '>', now())
+            //     ->first();
 
-            if (!$otp) {
-                return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
-            }
+            // if (!$otp) {
+            //     return response()->json(['message' => 'OTP not verified or expired or phone number got changed'], 403);
+            // }
 
 
             DB::beginTransaction();

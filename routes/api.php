@@ -210,20 +210,20 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
     //super admin
     Route::middleware('superadmin')->group(function () {
         Route::post('/create-roles', [RoleController::class, 'createRole']);
-        Route::post('/create-moderator', [AdminController::class, 'create_moderator']);
+       
 
         //for customer only
         Route::get('/customer/{uniqueUserId}', [AdminController::class, 'getUserWithProfile']);
-        Route::put('/customer/{uniqueUserId}', [AdminController::class, 'updateUser']);
-        Route::delete('/customer/{uniqueUserId}', [AdminController::class, 'deleteUser']);
+        
+        
         Route::put('/customer/{uniqueUserId}/deactivate', [AdminController::class, 'deactivateUser']);
         Route::get('/all-customer', [AdminController::class, 'getAllUsers']);
 
 
-        Route::get('/all-moderators', [AdminController::class, 'getAllModerators']);
+        
         Route::get('/moderator/{uniqueModeratorId}', [AdminController::class, 'getSingleModerator']);
-        Route::delete('/delete-moderator/{uniqueModeratorId}', [AdminController::class, 'deleteModerator']);
-        Route::put('/update-moderator/{uniqueModeratorId}', [AdminController::class, 'updateModerator']);
+        
+        
 
 
         Route::get('/all-roles', [AdminController::class, 'getAllRoles']);
@@ -294,7 +294,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         // For role wised add banner 
         Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
 
-        Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
+        
         
 
         
@@ -333,6 +333,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
     Route::middleware(['author:super admin,moderator'])->group(function () {
         Route::post('/promocodes', [PromocodeController::class, 'store']);
+        Route::post('/promocodes/store-assign', [PromocodeController::class, 'storeAndAssign']);
         Route::get('/promocodes/{id}', [PromocodeController::class, 'show']);
         Route::put('/promocodes/{id}', [PromocodeController::class, 'update']);
         Route::put('/promocodes/status/{id}', [PromocodeController::class, 'statusUpdate']);
@@ -352,8 +353,25 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         //approve status
         Route::put('/approve-provider/{uniqueUserId}', [AdminController::class, 'approveProvider']);
         Route::get('/approve-requests', [CommonController::class, 'getPendingApprovalProviders']);
+        Route::get('/all-providers', [CommonController::class, 'getAllProviders']);
         Route::get('/provider-revenue-board', [CommonController::class, 'providerRevenueBoard']);
         Route::put('/change-complaint-status/{complaintId}', [ComplaintController::class, 'changeComplaintStatus']);
+        Route::delete('delete-provider/{uniqueUserId}', [CommonController::class, 'deleteProvider']);
+        Route::get('/all/complain', [ComplaintController::class, 'getAllComplaints']);
+        Route::get('/all-roles-for-promocode', [PromocodeController::class, 'getAllRoles']);
+        Route::get('/all-user', [CommonController::class, 'getAllUsers']);
+        Route::get('/provider-roles-specialities', [CommonController::class, 'getProviderRolesWithSpecialities']);
+        Route::get('/all-getters', [CommonController::class, 'getAllCustomer']);
+        Route::delete('/customer/{uniqueUserId}', [AdminController::class, 'deleteUser']);
+        Route::put('/customer/{uniqueUserId}', [AdminController::class, 'updateUser']);
+        Route::post('/create-moderator', [AdminController::class, 'create_moderator']);
+        Route::get('/all-moderators', [AdminController::class, 'getAllModerators']);
+        Route::delete('/delete-moderator/{uniqueModeratorId}', [AdminController::class, 'deleteModerator']);
+        Route::put('/update-moderator/{uniqueModeratorId}', [AdminController::class, 'updateModerator']);
+        Route::get('/provider-roles', [CommonController::class, 'getProviderRoles']);
+        Route::put('/update/doctor/{uniqueUserId}', [CommonController::class, 'doctorUpdate']);
+        Route::put('/update/lawyer/{uniqueUserId}', [CommonController::class, 'lawyerUpdate']);
+        Route::put('/update/common/{uniqueUserId}', [CommonController::class, 'commonUpdate']);
     });
 
     

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\CommonNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -31,9 +32,10 @@ class AdminController extends Controller
             'active_status' => 'nullable|boolean',
         ]);
 
-        DB::beginTransaction();
+        
 
         try {
+            DB::beginTransaction();
             $uniqueUserId = $this->generateUniqueUserId();
 
             // Create the user
@@ -46,6 +48,18 @@ class AdminController extends Controller
                 'unique_user_id' => (string)$uniqueUserId, // Ensure unique_user_id is passed here
             ]);
 
+            $imageUrl = null;
+            if($request->hasFile('avatar')){
+
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            $request->avatar->move(public_path('images/moderator'), $imageName);
+
+            // Generate full URL
+            $imageUrl = asset('images/moderator/' . $imageName); // or asset('images/' . $imageName)
+
+            }
+
 
 
             // Create the moderator profile
@@ -53,7 +67,7 @@ class AdminController extends Controller
                 'user_id' => $user->id,
                 'gender' => $validated['gender'] ?? null,
                 'dob' => $validated['dob'] ?? null,
-                'avatar' => $validated['avatar'] ?? null,
+                'avatar' => $imageUrl,
 
             ]);
 
@@ -128,49 +142,129 @@ class AdminController extends Controller
             'users' => $users,
         ], 200);
     }
+    // public function updateUser(Request $request, $uniqueUserId)
+    // {
+    //     // Super Admin check (optional)
+
+    //     $user = User::with('customerProfile')
+    //         ->where('unique_user_id', $uniqueUserId)
+    //         ->firstOrFail();
+
+
+    //     $validated = $request->validate([
+    //         'name' => 'required|string|max:255',
+    //         'email' => 'nullable|email|unique:users,email,' . $user->id,
+    //         'phone' => 'required|regex:/^01[3-9][0-9]{8}$/',
+    //         'password' => 'nullable|string|min:6',
+    //     ]);
+
+    //     if ($request->has('password')) {
+    //         $validated['password'] = bcrypt($request->password);
+    //     }
+
+
+
+    //     // Update user in the 'users' table
+    //     $user->update($validated);
+
+
+
+    //     // Optionally update customer profile if needed
+    //     if ($request->has('gender') || $request->has('dob') || $request->has('district') || $request->has('sub_district') || $request->has('union_name') || $request->has('address')) {
+
+    //         if ($user->customerProfile) {
+
+    //             $user->customerProfile->update([
+    //                 'gender' => $request->input('gender', $user->customerProfile->gender),
+    //                 'dob' => $request->input('dob', $user->customerProfile->dob),
+    //                 'district' => $request->input('district', $user->customerProfile->district),
+    //                 'sub_district' => $request->input('sub_district', $user->customerProfile->sub_district),
+    //                 'union_name' => $request->input('union_name', $user->customerProfile->union_name),
+    //             ]);
+    //         }
+    //     }
+
+    //     return response()->json(['message' => 'User updated successfully.', 'user' => $user, 'status' => true, 'code' => 200], 200);
+    // }
+
+
+
     public function updateUser(Request $request, $uniqueUserId)
     {
-        // Super Admin check (optional)
-
         $user = User::with('customerProfile')
             ->where('unique_user_id', $uniqueUserId)
             ->firstOrFail();
 
-
+        // Validate the incoming request data (excluding the avatar)
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'phone' => 'required|regex:/^01[3-9][0-9]{8}$/',
-            'password' => 'nullable|string|min:6',
+            'gender' => 'nullable|in:male,female,other',
+            'dob' => 'nullable|date',
+            'district' => 'nullable|string|max:255',
+            'sub_district' => 'nullable|string|max:255',
+            'union_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:500',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // Avatar validation
         ]);
 
-        if ($request->has('password')) {
-            $validated['password'] = bcrypt($request->password);
-        }
+        // Check if an avatar is uploaded
+        if ($request->hasFile('avatar')) {
+
+            // Delete the previous avatar if it exists
+            if ($user->customerProfile->avatar) {
+                // Convert full URL to relative path
+                // $relativePath = str_replace(asset('') . '/', '', $user->customerProfile->avatar);
+                $relativePath = str_replace(
+                    asset(''),
+                    '',
+                    $user->customerProfile->avatar
+                );
 
 
 
-        // Update user in the 'users' table
-        $user->update($validated);
 
+                // return response()->json($relativePath);
 
+                // Check if the file exists and delete it
+                if (File::exists(public_path($relativePath))) {
 
-        // Optionally update customer profile if needed
-        if ($request->has('gender') || $request->has('dob') || $request->has('district') || $request->has('sub_district') || $request->has('union_name')) {
-
-            if ($user->customerProfile) {
-
-                $user->customerProfile->update([
-                    'gender' => $request->input('gender', $user->customerProfile->gender),
-                    'dob' => $request->input('dob', $user->customerProfile->dob),
-                    'district' => $request->input('district', $user->customerProfile->district),
-                    'sub_district' => $request->input('sub_district', $user->customerProfile->sub_district),
-                    'union_name' => $request->input('union_name', $user->customerProfile->union_name),
-                ]);
+                    File::delete(public_path($relativePath));
+                }
             }
+
+            // Generate a unique file name for the new avatar
+            $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+            // Move the uploaded image to the 'public/images/customer' directory
+            $request->avatar->move(public_path('images/customer'), $imageName);
+
+            // Store the full URL of the uploaded image
+            $validated['avatar'] = asset('images/customer/' . $imageName); // Add avatar URL to the validated data
         }
 
-        return response()->json(['message' => 'User updated successfully.', 'user' => $user, 'status' => true, 'code' => 200], 200);
+        // Update user details
+        if (isset($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+
+        if (isset($validated['email'])) {
+            $user->email = $validated['email'];
+        }
+
+        $user->save();
+
+        // Update or create the customer profile, including the avatar URL if it's present
+        $user->customerProfile()->updateOrCreate(
+            ['user_id' => $user->id],
+            $validated
+        );
+
+        // Reload the user with the updated customer profile
+        $user->load('customerProfile');
+
+        // Return response
+        return response()->json(['message' => 'Profile updated successfully.', 'user' => $user]);
     }
 
     // Deactivate user
@@ -208,7 +302,7 @@ class AdminController extends Controller
 
         // Retrieve all moderators with their profiles
         $moderators = User::with('moderatorProfile')->whereHas('role', function ($query) {
-            $query->where('name', 'Moderator');
+            $query->where('name', 'moderator');
         })->get();
 
         foreach ($moderators as $moderator) {
@@ -276,24 +370,25 @@ class AdminController extends Controller
 
     public function updateModerator(Request $request, $uniqueModeratorId)
     {
-
+      $user = User::where('unique_user_id', $uniqueModeratorId)->firstOrFail();
 
         // Validate the incoming request (exclude password from the validation)
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:users,email,' . $uniqueModeratorId, // Ensure unique email except for the current user
+            'email' => 'nullable|email|unique:users,email,' . $user->id, // Ensure unique email except for the current user
             'phone' => 'nullable|string|regex:/^01[3-9][0-9]{8}$/',
             'gender' => 'nullable|string',
             'dob' => 'nullable|date',
-            'avatar' => 'nullable|string',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'active_status' => 'nullable|boolean',
         ]);
 
-        DB::beginTransaction();
+       
 
         try {
+            DB::beginTransaction();
             // Find the user by unique_user_id
-            $user = User::where('unique_user_id', $uniqueModeratorId)->firstOrFail();
+            
 
             // Update the user fields (skip the password field)
             $user->update([
@@ -301,6 +396,41 @@ class AdminController extends Controller
                 'email' => $validated['email'] ?? $user->email,
                 'phone' => $validated['phone'] ?? $user->phone
             ]);
+
+            if ($request->hasFile('avatar')) {
+
+                // Delete the previous avatar if it exists
+                if ($user->moderatorProfile->avatar) {
+                    // Convert full URL to relative path
+                    // $relativePath = str_replace(asset('') . '/', '', $user->customerProfile->avatar);
+                    $relativePath = str_replace(
+                        asset(''),
+                        '',
+                        $user->moderatorProfile->avatar
+                    );
+
+
+
+
+                    // return response()->json($relativePath);
+
+                    // Check if the file exists and delete it
+                    if (File::exists(public_path($relativePath))) {
+
+                        File::delete(public_path($relativePath));
+                    }
+                }
+
+                // Generate a unique file name for the new avatar
+                $imageName = time() . '_' . $user->id . '.' . $request->avatar->getClientOriginalExtension();
+
+                // Move the uploaded image to the 'public/images/customer' directory
+                $request->avatar->move(public_path('images/moderator'), $imageName);
+
+                // Store the full URL of the uploaded image
+                $validated['avatar'] = asset('images/moderator/' . $imageName); // Add avatar URL to the validated data
+            }
+
 
             // If the user has an associated moderator profile, update it
             if ($user->moderatorProfile) {
