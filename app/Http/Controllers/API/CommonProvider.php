@@ -23,6 +23,7 @@ class CommonProvider extends Controller
 
         // Validate the incoming request
         $validated = $request->validate([
+            'common_speciality_id' => 'sometimes|nullable|exists:common_provider_specialities,id',
             'name' => 'sometimes|required|string|max:255',
            
             'email' => 'nullable|email|unique:users,email,' . $user->id,
@@ -146,6 +147,7 @@ class CommonProvider extends Controller
         $commonProfile = $user->commonProfile;  // Get the related common profile
         if ($commonProfile) {
             $commonProfile->update([
+                'common_speciality_id' => $validated['common_speciality_id'] ?? null,
                 'bio' => $bio,
                 'pricing' => $pricing,
                 'gender' => $gender,

@@ -575,6 +575,7 @@ class CommonController extends Controller
 
     public function doctorUpdate(Request $request, $uniqueUserId)
     {
+        
         $user = User::where('unique_user_id', $uniqueUserId)->first();
 
         if (!$user) {
@@ -585,9 +586,9 @@ class CommonController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'doctor_type_id' => 'sometimes|required|exists:doctor_types,id',
-            'doctor_speciality_id' => 'sometimes|required|exists:doctor_specialities,id',
-            'doctor_title_id' => 'sometimes|required|exists:doctor_titles,id',
+            'doctor_type_id' => 'sometimes|nullable|exists:doctor_types,id',
+            'doctor_speciality_id' => 'sometimes|nullable|exists:doctor_specialities,id',
+            'doctor_title_id' => 'sometimes|nullable|exists:doctor_titles,id',
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
             'district' => 'nullable|string|max:255',
@@ -695,7 +696,7 @@ class CommonController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'lawyer_title_id' => 'sometimes|required|exists:lawyer_titles,id',
+            'lawyer_title_id' => 'sometimes|nullable|exists:lawyer_titles,id',
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
 
@@ -804,7 +805,7 @@ class CommonController extends Controller
         // Validate the incoming request
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-
+            'common_speciality_id' => 'sometimes|nullable|exists:common_provider_specialities,id',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
             'bio' => 'nullable|string',
             'pricing' => 'nullable|numeric|min:0',
@@ -926,6 +927,7 @@ class CommonController extends Controller
             $commonProfile = $user->commonProfile;  // Get the related common profile
             if ($commonProfile) {
                 $commonProfile->update([
+                    'common_speciality_id' => $validated['common_speciality_id'] ?? null,
                     'bio' => $bio,
                     'pricing' => $pricing,
                     'gender' => $gender,

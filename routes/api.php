@@ -372,6 +372,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::put('/update/doctor/{uniqueUserId}', [CommonController::class, 'doctorUpdate']);
         Route::put('/update/lawyer/{uniqueUserId}', [CommonController::class, 'lawyerUpdate']);
         Route::put('/update/common/{uniqueUserId}', [CommonController::class, 'commonUpdate']);
+        
     });
 
     
