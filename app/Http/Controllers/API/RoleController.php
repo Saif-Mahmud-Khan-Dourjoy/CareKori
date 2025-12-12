@@ -69,11 +69,11 @@ class RoleController extends Controller
 
       
         // Create the new role
-        Role::create(['name' => $request->name ,  'icon' => $iconPath ]);
+        Role::create(['name' => strtolower($request->name) ,  'icon' => $iconPath ]);
 
         return response()->json([
             'message' => 'Role created successfully.',
-            'role' => $request->name,
+            'role' => strtolower($request->name),
             'status' => true,
             'code' => 201
         ], 201);

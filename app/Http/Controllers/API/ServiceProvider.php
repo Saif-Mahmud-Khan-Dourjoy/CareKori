@@ -516,4 +516,110 @@ if ($authUser && Str::endsWith($authUser->phone, '5')) {
         // You can generate a random number between a range, or use a larger number to make it unique
         return rand(100000000, 999999999);  // Example: Generates a random 9-digit number
     }
+
+    public function categories(Request $request)
+    {
+        
+        $nonProviderRoleNames = ['super admin', 'moderator', 'customer'];
+
+        $roles = Role::query()
+            ->whereNotIn('name', $nonProviderRoleNames)
+            ->orderBy('id')
+            ->get();
+
+        $categories = $roles->map(function (Role $role) {
+            $roleName = strtolower($role->name);
+
+            if ($roleName === 'doctor') {
+                $subCount = DoctorSpeciality::count();
+            } elseif ($roleName === 'lawyer') {
+                $subCount = LawyerSpeciality::count();
+            } else {
+                // all other providers share common_provider_specialities
+                $subCount = CommonProviderSpeciality::where('category_id', $role->id)->count();
+            }
+
+            return [
+                'id'                   => $role->id,
+                'name'        => $role->name,
+                'icon'        => $role->icon,        // from roles.icon
+                'subCount'  => $subCount,
+                'createdAt'           => $role->getRawOriginal('created_at'),
+            ];
+        });
+
+        return response()->json([
+            'data' => $categories,
+        ]);
+    }
+
+
+    public function subcategories()
+    {
+        // Find doctor & lawyer roles once (optional safety)
+        $doctorRole = Role::whereRaw('LOWER(name) = ?', ['doctor'])->first();
+        $lawyerRole = Role::whereRaw('LOWER(name) = ?', ['lawyer'])->first();
+
+        // ---- Doctor specialities ----
+        $doctorSpecialities = DoctorSpeciality::query()
+            ->orderBy('id')
+            ->get()
+            ->map(function (DoctorSpeciality $spec) use ($doctorRole) {
+                return [
+                    'id'                    => $spec->id,
+                    'type'                  => $doctorRole?->name, // for frontend uniqueness
+                    'name'      => $spec->specialized_at,
+                    'icon'      => $spec->icon,
+                    'parent_category_id'    => $doctorRole?->id,
+                    'parent_category_name'  => $doctorRole?->name,
+                    'parent_category_icon'  => $doctorRole?->icon,
+                    'createdAt'            => $spec->getRawOriginal('created_at'),
+                ];
+            });
+
+        // ---- Lawyer specialities ----
+        $lawyerSpecialities = LawyerSpeciality::query()
+            ->orderBy('id')
+            ->get()
+            ->map(function (LawyerSpeciality $spec) use ($lawyerRole) {
+                return [
+                    'id'                    => $spec->id,
+                    'type'                  => $lawyerRole?->name,
+                    'name'      => $spec->specialized_at,
+                    'icon'      => $spec->icon,
+                    'parent_category_id'    => $lawyerRole?->id,
+                    'parent_category_name'  => $lawyerRole?->name,
+                    'parent_category_icon'  => $lawyerRole?->icon,
+                    'createdAt'            => $spec->getRawOriginal('created_at'),
+                ];
+            });
+
+        // ---- Other provider specialities ----
+        $commonSpecialities = CommonProviderSpeciality::with('category')
+            ->orderBy('id')
+            ->get()
+            ->map(function (CommonProviderSpeciality $spec) {
+                return [
+                    'id'                    => $spec->id,
+                    'type'                  => $spec->category?->name,
+                    'name'      => $spec->specialized_at,
+                    'icon'      => $spec->icon,
+                    'parent_category_id'    => $spec->category?->id,
+                    'parent_category_name'  => $spec->category?->name,
+                    'parent_category_icon'  => $spec->category?->icon,
+                    'createdAt'            => $spec->getRawOriginal('created_at'),
+                ];
+            });
+
+        // merge all three collections
+        $subcategories = $doctorSpecialities
+            ->concat($lawyerSpecialities)
+            ->concat($commonSpecialities)
+            ->values();
+
+        return response()->json([
+            'data' => $subcategories,
+        ]);
+    }
+
 }

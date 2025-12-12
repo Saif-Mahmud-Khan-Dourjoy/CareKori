@@ -209,7 +209,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
     //super admin
     Route::middleware('superadmin')->group(function () {
-        Route::post('/create-roles', [RoleController::class, 'createRole']);
+        
        
 
         //for customer only
@@ -228,8 +228,8 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         Route::get('/all-roles', [AdminController::class, 'getAllRoles']);
         Route::get('/role/{roleId}', [AdminController::class, 'getSingleRole']);
-        Route::delete('/delete-role/{roleId}', [AdminController::class, 'deleteRole']);
-        Route::post('/update-role/{roleId}', [AdminController::class, 'updateRole']);
+        
+        
 
 
         Route::get('/doctor-types', [DoctorType::class, 'index']);
@@ -242,9 +242,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         Route::get('/doctor-specialities', [DoctorSpecialityController::class, 'index']);
         Route::get('/doctor-specialities/{id}', [DoctorSpecialityController::class, 'show']);
-        Route::post('/doctor-specialities', [DoctorSpecialityController::class, 'store']);
-        Route::post('/update/doctor-specialities/{id}', [DoctorSpecialityController::class, 'update']);
-        Route::delete('/doctor-specialities/{id}', [DoctorSpecialityController::class, 'destroy']);
+
 
         Route::get('/doctor-titles', [DoctorTitle::class, 'index']);
         Route::get('/doctor-titles/{id}', [DoctorTitle::class, 'show']);
@@ -275,12 +273,10 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
 
         //common provider speciality
-        Route::post('/create-common-provider-speciality', [CommonProviderSpeciality::class, 'addCommonProviderSpeciality']);
+       
 
         Route::get('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'getCommonProviderSpecialityById']);
-        Route::post('/update/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'updateCommonProviderSpeciality']);
-        Route::delete('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'deleteCommonProviderSpeciality']);
-
+        
 
 
 
@@ -372,7 +368,23 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::put('/update/doctor/{uniqueUserId}', [CommonController::class, 'doctorUpdate']);
         Route::put('/update/lawyer/{uniqueUserId}', [CommonController::class, 'lawyerUpdate']);
         Route::put('/update/common/{uniqueUserId}', [CommonController::class, 'commonUpdate']);
-        
+        Route::get('/provider-categories', [ServiceProvider::class, 'categories']);
+        Route::get('/provider-subcategories', [ServiceProvider::class, 'subcategories']);
+        Route::post('/create-roles', [RoleController::class, 'createRole']);
+        Route::post('/update-role/{roleId}', [AdminController::class, 'updateRole']);
+        Route::delete('/delete-role/{roleId}', [AdminController::class, 'deleteRole']);
+
+        Route::post('/doctor-specialities', [DoctorSpecialityController::class, 'store']);
+        Route::post('/update/doctor-specialities/{id}', [DoctorSpecialityController::class, 'update']);
+        Route::delete('/doctor-specialities/{id}', [DoctorSpecialityController::class, 'destroy']);
+
+        Route::post('/lawyer-specialities', [LawyerSpecialityController::class, 'store']);
+        Route::post('/update/lawyer-specialities/{id}', [LawyerSpecialityController::class, 'update']);
+        Route::delete('/lawyer-specialities/{id}', [LawyerSpecialityController::class, 'destroy']);
+
+        Route::post('/create-common-provider-speciality', [CommonProviderSpeciality::class, 'addCommonProviderSpeciality']);
+        Route::post('/update/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'updateCommonProviderSpeciality']);
+        Route::delete('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'deleteCommonProviderSpeciality']);
     });
 
     

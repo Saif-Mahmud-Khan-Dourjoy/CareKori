@@ -58,11 +58,11 @@ class LawyerSpecialityController extends Controller
         $lawyerSpeciality = LawyerSpeciality::find($id);
 
         if (!$lawyerSpeciality) {
-            return response()->json(['message' => 'Doctor Speciality not found'], 404);
+            return response()->json(['message' => 'Lawyer Speciality not found'], 404);
         }
 
         $request->validate([
-            'specialized_at' => 'required|string|unique:doctor_specialities,specialized_at,' . $id . '|max:255',
+            'specialized_at' => 'required|string|unique:lawyer_specialities,specialized_at,' . $id . '|max:255',
             'icon' => 'nullable|mimes:jpeg,jpg,png|max:2048',
         ]);
 
