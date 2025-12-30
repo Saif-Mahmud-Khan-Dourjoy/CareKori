@@ -28,6 +28,7 @@ use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
 use App\Http\Controllers\API\OrderController;
+use App\Http\Controllers\Api\PaymentRecordController;
 use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
@@ -284,11 +285,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
 
         //ADD BANNER
 
-        Route::post('banner/store', [AddBannerController::class, 'store']);  // Store a new banner
-
-
-        // For role wised add banner 
-        Route::post('role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
+       
 
         
         
@@ -385,6 +382,16 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::post('/create-common-provider-speciality', [CommonProviderSpeciality::class, 'addCommonProviderSpeciality']);
         Route::post('/update/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'updateCommonProviderSpeciality']);
         Route::delete('/common-provider-specialities/{id}', [CommonProviderSpeciality::class, 'deleteCommonProviderSpeciality']);
+        Route::post('/payment-records', [PaymentRecordController::class, 'store']);
+        Route::get('/payment-records/last/{user}', [PaymentRecordController::class, 'lastByUser']);
+        Route::get('/providers/payment-summary', [PaymentRecordController::class, 'providersPaymentSummary']);
+        Route::put('/payment-records/{paymentRecord}', [PaymentRecordController::class, 'update']);
+        Route::get('/banner/all', [AddBannerController::class, 'getAll']);
+        Route::post('/banner/store', [AddBannerController::class, 'store']);  // Store a new banner
+
+
+        // For role wised add banner 
+        Route::post('/role/banner/store/{roleId}', [AddBannerController::class, 'storeByRole']);  // Store a new banner
     });
 
     
@@ -488,7 +495,7 @@ Route::post('/forget-password/otp/send', [OtpController::class, 'sendOtpForForge
 Route::post('/forget-password/otp/verify', [OtpController::class, 'verifyOtpForForgetPassword']);
 Route::post('/forget-password/update', [OtpController::class, 'updatePasswordAfterForget']);
 Route::get('banner/latest', [AddBannerController::class, 'getLatest']);  // Get the latest banner
-Route::get('banner/all', [AddBannerController::class, 'getAll']);  // Get all banners
+
 
 Route::get('role/banner/latest/{roleId}', [AddBannerController::class, 'getLatestByRole']);  // Get the latest banner
 Route::get('role/banner/all/{roleId}', [AddBannerController::class, 'getAllByRole']);  // Get all banners

@@ -413,6 +413,12 @@ class CommonController extends Controller
                 'profile_type' => $profileType,      // 'doctor' | 'lawyer' | 'common' | 'none'
                 'profile'      => $profile,          // object with nested refs, or null
                 'availabilities' => $u->availability,
+                'specialized_at' => match(strtolower($profileType)) {
+                    'doctor' => $profile?->doctorSpeciality?->specialized_at,
+                    'lawyer' => $profile?->lawyerSpeciality?->specialized_at,
+                    'none' => null,
+                    default => $profile?->commonSpeciality?->specialized_at,
+                },
                 'created_at'   => $u->created_at,
             ];
         })->values();
