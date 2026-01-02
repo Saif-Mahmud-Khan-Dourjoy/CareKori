@@ -28,7 +28,7 @@ use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\LoginController;
 use App\Http\Controllers\API\ModeratorProfile;
 use App\Http\Controllers\API\OrderController;
-use App\Http\Controllers\Api\PaymentRecordController;
+use App\Http\Controllers\API\PaymentRecordController;
 use App\Http\Controllers\API\PromocodeController;
 use App\Http\Controllers\API\ProviderController;
 use App\Http\Controllers\API\ServiceProvider;
