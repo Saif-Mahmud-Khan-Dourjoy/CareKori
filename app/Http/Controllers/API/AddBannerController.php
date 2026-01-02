@@ -57,8 +57,20 @@ class AddBannerController extends Controller
     // Get all banners
     public function getAll()
     {
-        // Get all banners
-        $banners = AddBanner::all();
+        // Get all banners with role information
+        $banners = AddBanner::with('role')->get()->map(function ($banner) {
+            return [
+                'id' => $banner->id,
+                'role_id' => $banner->role_id,
+                'add_image' => $banner->add_image,
+                'add_for' => $banner->add_for,
+                'add_type' => $banner->add_type,
+                'created_at' => $banner->created_at,
+                'updated_at' => $banner->updated_at,
+                'role_name' => $banner->role ? $banner->role->name : null,
+                'role' => $banner->role,
+            ];
+        });
 
         if ($banners->isEmpty()) {
             return response()->json(['message' => 'No banners found'], 404);
@@ -67,6 +79,30 @@ class AddBannerController extends Controller
         return response()->json([
             'banners' => $banners,
         ]);
+    }
+
+    // Delete a banner
+    public function delete($id)
+    {
+        $banner = AddBanner::find($id);
+
+        if (!$banner) {
+            return response()->json(['message' => 'Banner not found'], 404);
+        }
+
+        // Delete the image file from storage
+        $imagePath = str_replace(asset(''), '', $banner->add_image);
+        $fullPath = public_path($imagePath);
+        
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
+
+        $banner->delete();
+
+        return response()->json([
+            'message' => 'Banner deleted successfully',
+        ], 200);
     }
 
 
@@ -105,7 +141,18 @@ class AddBannerController extends Controller
             ->first();
 
         if ($banner) {
-            return response()->json(['data' => $banner]);
+            $data = [
+                'id' => $banner->id,
+                'role_id' => $banner->role_id,
+                'add_image' => $banner->add_image,
+                'add_for' => $banner->add_for,
+                'add_type' => $banner->add_type,
+                'created_at' => $banner->created_at,
+                'updated_at' => $banner->updated_at,
+                'role_name' => $banner->role ? $banner->role->name : null,
+                'role' => $banner->role,
+            ];
+            return response()->json(['data' => $data]);
         } else {
             return response()->json(['message' => 'No banners found for this role'], 404);
         }
@@ -114,7 +161,19 @@ class AddBannerController extends Controller
     // 3️⃣. GET All Banners for a specific Role
     public function getAllByRole($roleId)
     {
-        $banners = AddBanner::with('role')->where('role_id', $roleId)->get();
+        $banners = AddBanner::with('role')->where('role_id', $roleId)->get()->map(function ($banner) {
+            return [
+                'id' => $banner->id,
+                'role_id' => $banner->role_id,
+                'add_image' => $banner->add_image,
+                'add_for' => $banner->add_for,
+                'add_type' => $banner->add_type,
+                'created_at' => $banner->created_at,
+                'updated_at' => $banner->updated_at,
+                'role_name' => $banner->role ? $banner->role->name : null,
+                'role' => $banner->role,
+            ];
+        });
 
         return response()->json(['data' => $banners]);
     }

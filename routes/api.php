@@ -388,6 +388,7 @@ Route::middleware(['auth:sanctum', 'check.token.expiration'])->group(function ()
         Route::put('/payment-records/{paymentRecord}', [PaymentRecordController::class, 'update']);
         Route::get('/banner/all', [AddBannerController::class, 'getAll']);
         Route::post('/banner/store', [AddBannerController::class, 'store']);  // Store a new banner
+        Route::delete('/banner/delete/{id}', [AddBannerController::class, 'delete']);  // Delete a banner
 
 
         // For role wised add banner 
