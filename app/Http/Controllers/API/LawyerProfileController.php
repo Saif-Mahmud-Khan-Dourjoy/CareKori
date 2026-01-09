@@ -273,7 +273,8 @@ class LawyerProfileController extends Controller
             }
 
 
-            $user->lawyerProfile = $lawyerProfile;
+            $user->makeHidden('lawyerProfile');
+            $user->lawyer_profile = $lawyerProfile;
         }
 
         $providerId = $user->id;

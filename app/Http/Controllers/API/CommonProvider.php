@@ -339,7 +339,8 @@ class CommonProvider extends Controller
             }
 
 
-            $user->commonProfile = $commonProfile;
+            $user->makeHidden('commonProfile');
+            $user->common_profile = $commonProfile;
         }
 
         // $profileKey = $user->role->name . '_profile';

@@ -268,20 +268,20 @@ class DoctorProfileCOntroller extends Controller
 
 
             if (array_key_exists('district', $doctorProfile)) {
-                $doctorProfile['division'] = $doctorProfile['thana'];
-               // unset($doctorProfile['district']);
+                $doctorProfile['division'] = $doctorProfile['district'];
+               unset($doctorProfile['district']);
             }
 
             if (array_key_exists('thana', $doctorProfile)) {
-                $doctorProfile['district'] = $doctorProfile['district'];
-                unset($doctorProfile['thana']);//redundent needs to be changed 
+                $doctorProfile['district'] = $doctorProfile['thana'];
+                unset($doctorProfile['thana']);
             }
 
-
-            $user->doctorProfile = $doctorProfile;
+            $user->makeHidden('doctorProfile');
+            $user->doctor_profile = $doctorProfile;
           
         }
-unset($user->doctor_profile);
+       
         $providerId = $user->id;
 
 

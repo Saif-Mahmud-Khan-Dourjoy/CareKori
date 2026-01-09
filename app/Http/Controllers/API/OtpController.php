@@ -14,16 +14,28 @@ class OtpController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate(['phone' => 'required|regex:/^01[3-9][0-9]{8}$/']);
-        $code = 1234; // Fixed OTP code
+        $code = rand(1000, 9999); // Generate a random 4-digit OTP
 
         // Set timezone to Dhaka
         $now = Carbon::now('Asia/Dhaka');
         $expiresAt = $now->copy()->addMinutes(5);
 
-        OtpCode::updateOrCreate(
+       $otp = OtpCode::updateOrCreate(
             ['phone' => $request->phone],
             ['code' => $code, 'expires_at' => $expiresAt, 'is_verified' => false]
         );
+
+        if(!$otp){
+            return response()->json(['message' => 'Failed to create OTP'], 500);
+        }
+
+        $statusMessages = $this->sendToPhone($request, $code);
+        if (!$statusMessages) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP',
+            ], 500);
+        }
 
         return response()->json(['message' => 'OTP sent', 'otp' => $code, 'expires_at' => $expiresAt]); // Simulated
     }
@@ -174,7 +186,7 @@ class OtpController extends Controller
         }
 
         // If no valid OTP or expired OTP exists, generate a new OTP
-        $otp = 1234; // Fixed OTP code
+        $otp = rand(1000, 9999); // Fixed OTP code
 
         // Store the new OTP code
         OtpCode::updateOrCreate(
@@ -226,7 +238,7 @@ class OtpController extends Controller
         }
 
         // Generate OTP
-        $otp = 1234; // Fixed OTP code
+        $otp = rand(1000, 9999); // Fixed OTP code
 
         // Store OTP in database
         OtpCode::updateOrCreate(
@@ -239,19 +251,16 @@ class OtpController extends Controller
         );
 
         // Send OTP via SMS or Email (For simplicity, sending via email)
-        // $statusMessages= $this->sendToPhone($request, $otp);
+        $statusMessages= $this->sendToPhone($request, $otp);
 
-        // if (!$statusMessages) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Failed to resend OTP',
-        //     ], 500);
-        // }
+        if (!$statusMessages) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend OTP',
+            ], 500);
+        }
 
-        // return response()->json([
-        //     'success' => true,
-        //     'messages' => $statusMessages,
-        // ]);
+        
 
         return response()->json([
             'message' => 'OTP sent successfully',
@@ -300,7 +309,7 @@ class OtpController extends Controller
     public function sendOtpForForgetPassword(Request $request)
     {
         $request->validate(['phone' => 'required|regex:/^01[3-9][0-9]{8}$/']);
-        $code = 1234; // Fixed OTP code
+        $code = rand(1000, 9999); // Fixed OTP code
 
         // Check if the user exists with the provided phone number
         $user = User::where('phone', $request->phone)->first();
@@ -322,13 +331,13 @@ class OtpController extends Controller
             ['code' => $code, 'expires_at' => Carbon::now('Asia/Dhaka')->addMinutes(5), 'is_verified' => false]
         );
 
-        // $statusMessages = $this->sendToPhone($request, $code);
-        // if (!$statusMessages) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Failed to resend OTP',
-        //     ], 500);
-        // }
+        $statusMessages = $this->sendToPhone($request, $code);
+        if (!$statusMessages) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend OTP',
+            ], 500);
+        }
 
         // return response()->json([
         //     'success' => true,
