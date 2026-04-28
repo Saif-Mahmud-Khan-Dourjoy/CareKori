@@ -17,6 +17,8 @@ return [
         'store_id' => env('SSLCZ_STORE_ID'),
         'store_password' => env('SSLCZ_STORE_PASSWORD'),
         'sandbox' => env('SSLCZ_SANDBOX', true),
+        'endpoint' => env('SSLCZ_ENDPOINT', '/gwprocess/v4/api.php'),
+        'validation_endpoint' => env('SSLCZ_VALIDATION_ENDPOINT', '/validator/api/validationserverAPI.php'),
     ],
 
     'mailgun' => [

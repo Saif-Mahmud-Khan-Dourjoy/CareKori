@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SslCommerzService
 {
@@ -16,7 +18,7 @@ class SslCommerzService
     {
         $this->storeId = config('services.sslcommerz.store_id');
         $this->storePassword = config('services.sslcommerz.store_password');
-        $this->sandbox = config('services.sslcommerz.sandbox', true);
+        $this->sandbox = (bool) config('services.sslcommerz.sandbox', true);
 
         $this->baseUrl = $this->sandbox
             ? 'https://sandbox.sslcommerz.com'
@@ -30,57 +32,123 @@ class SslCommerzService
 
     public function initiatePayment(array $payload): array
     {
-        $endpoint = env('SSLCZ_ENDPOINT', '/gwprocess/v3/api.php');
+        try {
+            $endpoint = config('services.sslcommerz.endpoint', '/gwprocess/v4/api.php');
 
-        $payload = array_merge($payload, [
-            'store_id' => $this->storeId,
-            'store_passwd' => $this->storePassword,
-        ]);
+            $payload = array_merge($payload, [
+                'store_id' => $this->storeId,
+                'store_passwd' => $this->storePassword,
+            ]);
 
-        $response = $this->http->post($endpoint, [
-            'form_params' => $payload,
-        ]);
+            $response = $this->http->post($endpoint, [
+                'form_params' => $payload,
+            ]);
 
-        return json_decode($response->getBody()->getContents(), true);
+            return json_decode($response->getBody()->getContents(), true) ?? [];
+        } catch (\Throwable $e) {
+            Log::error('SSLCommerz session create failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     public function refundTransaction(array $params): array
     {
-        $baseUrl = $this->sandbox
-            ? 'https://sandbox.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php'
-            : 'https://securepay.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php';
+        try {
+            $url = $this->baseUrl . '/validator/api/merchantTransIDvalidationAPI.php';
 
-        // Add store credentials to params
-        $params = array_merge($params, [
-            'store_id' => $this->storeId,
-            'store_passwd' => $this->storePassword,
-            'format' => 'json',
-        ]);
+            $params = array_merge($params, [
+                'store_id' => $this->storeId,
+                'store_passwd' => $this->storePassword,
+                'format' => 'json',
+            ]);
 
-        $response = $this->http->get($baseUrl, [
-            'query' => $params,
-        ]);
+            $response = Http::timeout(15)->get($url, $params);
 
-        return json_decode($response->getBody()->getContents(), true);
+            return $response->json() ?? [];
+        } catch (\Throwable $e) {
+            Log::error('SSLCommerz refund failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     public function refundStatus(array $params): array
     {
-        $baseUrl = $this->sandbox
-            ? 'https://sandbox.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php'
-            : 'https://securepay.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php';
+        try {
+            $url = $this->baseUrl . '/validator/api/merchantTransIDvalidationAPI.php';
 
-        // Add store credentials to params
-        $params = array_merge($params, [
-            'store_id' => $this->storeId,
-            'store_passwd' => $this->storePassword,
-        
-        ]);
+            $params = array_merge($params, [
+                'store_id' => $this->storeId,
+                'store_passwd' => $this->storePassword,
+                'format' => 'json',
+            ]);
 
-        $response = $this->http->get($baseUrl, [
-            'query' => $params,
-        ]);
+            $response = Http::timeout(15)->get($url, $params);
 
-        return json_decode($response->getBody()->getContents(), true);
+            return $response->json() ?? [];
+        } catch (\Throwable $e) {
+            Log::error('SSLCommerz refund status failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    public function validatePayment(string $valId): ?array
+    {
+        try {
+            $endpoint = config(
+                'services.sslcommerz.validation_endpoint',
+                '/validator/api/validationserverAPI.php'
+            );
+
+            $url = $this->baseUrl . $endpoint;
+
+            $response = Http::timeout(15)->get($url, [
+                'val_id' => $valId,
+                'store_id' => $this->storeId,
+                'store_passwd' => $this->storePassword,
+                'format' => 'json',
+            ]);
+
+            if ($response->failed()) {
+                Log::error('SSLCommerz validation API failed', [
+                    'val_id' => $valId,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return null;
+            }
+
+            $data = $response->json();
+
+            $validStatuses = ['VALID', 'VALIDATED'];
+
+            if (
+                isset($data['status']) &&
+                in_array(strtoupper($data['status']), $validStatuses, true)
+            ) {
+                return $data;
+            }
+
+            Log::warning('SSLCommerz payment validation rejected', [
+                'response' => $data,
+            ]);
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('SSLCommerz validation exception', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }
